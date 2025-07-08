@@ -1,33 +1,33 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import type { User } from "@supabase/supabase-js"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { supabase } from "@/lib/supabase"
-import { Search, Bell, Settings, LogOut, UserIcon } from "lucide-react"
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/lib/supabase";
+import { Search, Bell, Settings, LogOut, UserIcon } from "lucide-react";
 
 interface DashboardHeaderProps {
-  user: User
+  user: User;
 }
 
 export function DashboardHeader({ user }: DashboardHeaderProps) {
-  const [searchQuery, setSearchQuery] = useState("")
-  const router = useRouter()
+  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/auth/signin")
-  }
+    await supabase.auth.signOut();
+    router.push("/auth/signin");
+  };
 
   const userInitials = user.user_metadata?.full_name
     ? user.user_metadata.full_name
@@ -35,7 +35,11 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
         .map((n: string) => n[0])
         .join("")
         .toUpperCase()
-    : user.email?.charAt(0).toUpperCase() || "U"
+    : user.email?.charAt(0).toUpperCase() || "U";
+
+  // جلب صورة الأفاتار من user.user_metadata.avatar_url أو صورة ثابتة من dicebear إذا لم توجد
+  const fallbackAvatar = "https://avatars.dicebear.com/api/micah/male1.svg";
+  const avatarUrl = user.user_metadata?.avatar_url || fallbackAvatar;
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-3">
@@ -70,7 +74,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
                   <AvatarImage
-                    src={user.user_metadata?.avatar_url || "/placeholder.svg"}
+                    src={avatarUrl}
                     alt={user.user_metadata?.full_name || user.email}
                   />
                   <AvatarFallback>{userInitials}</AvatarFallback>
@@ -80,16 +84,24 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <div className="flex items-center justify-start gap-2 p-2">
                 <div className="flex flex-col space-y-1 leading-none">
-                  <p className="font-medium">{user.user_metadata?.full_name || "User"}</p>
-                  <p className="w-[200px] truncate text-sm text-muted-foreground">{user.email}</p>
+                  <p className="font-medium">
+                    {user.user_metadata?.full_name || "User"}
+                  </p>
+                  <p className="w-[200px] truncate text-sm text-muted-foreground">
+                    {user.email}
+                  </p>
                 </div>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push("/dashboard/profile")}>
+              <DropdownMenuItem
+                onClick={() => router.push(`/dashboard/users/${user.id}`)}
+              >
                 <UserIcon className="mr-2 h-4 w-4" />
                 <span>Profile</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/dashboard/settings")}>
+              <DropdownMenuItem
+                onClick={() => router.push("/dashboard/settings")}
+              >
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Settings</span>
               </DropdownMenuItem>
@@ -103,5 +115,5 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
         </div>
       </div>
     </header>
-  )
+  );
 }

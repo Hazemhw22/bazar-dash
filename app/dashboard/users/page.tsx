@@ -1,101 +1,134 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { supabase } from "@/lib/supabase"
-import { Search, Plus, Trash2, Eye, Edit, Users, AlertCircle } from "lucide-react"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { supabase } from "@/lib/supabase";
+import {
+  Search,
+  Plus,
+  Trash2,
+  Eye,
+  Edit,
+  Users,
+  AlertCircle,
+} from "lucide-react";
 
 interface Profile {
-  id: string
-  email: string
-  full_name: string | null
-  avatar_url: string | null
-  phone_number: string | null
-  address: string | null
-  created_at: string
-  updated_at: string
+  id: string;
+  email: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  phone_number: string | null;
+  address: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<Profile[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [error, setError] = useState<string | null>(null)
+  const [users, setUsers] = useState<Profile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchUsers()
-  }, [])
+    fetchUsers();
+  }, []);
 
   const fetchUsers = async () => {
     try {
-      setError(null)
-      setLoading(true)
-      console.log("Fetching users...")
+      setError(null);
+      setLoading(true);
+      console.log("Fetching users...");
 
-      const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false })
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Fetch users error:", error)
-        throw error
+        console.error("Fetch users error:", error);
+        throw error;
       }
 
-      console.log("Users data:", data)
-      setUsers(data || [])
+      console.log("Users data:", data);
+      setUsers(data || []);
     } catch (error) {
-      console.error("Error fetching users:", error)
-      setError(error instanceof Error ? error.message : "Unknown error occurred")
+      console.error("Error fetching users:", error);
+      setError(
+        error instanceof Error ? error.message : "Unknown error occurred"
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const deleteUser = async (userId: string) => {
-    if (!confirm("Are you sure you want to delete this user? This action cannot be undone.")) {
-      return
+    if (
+      !confirm(
+        "Are you sure you want to delete this user? This action cannot be undone."
+      )
+    ) {
+      return;
     }
 
     try {
-      const { error } = await supabase.from("profiles").delete().eq("id", userId)
+      const { error } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", userId);
 
       if (error) {
-        console.error("Delete error:", error)
-        throw error
+        console.error("Delete error:", error);
+        throw error;
       }
 
       // إزالة المستخدم من القائمة محلياً
-      setUsers((prev) => prev.filter((user) => user.id !== userId))
+      setUsers((prev) => prev.filter((user) => user.id !== userId));
 
-      alert("User deleted successfully!")
+      alert("User deleted successfully!");
     } catch (error) {
-      console.error("Error deleting user:", error)
-      alert("Error deleting user")
+      console.error("Error deleting user:", error);
+      alert("Error deleting user");
     }
-  }
+  };
 
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.phone_number?.toLowerCase().includes(searchQuery.toLowerCase())
+      user.phone_number?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesSearch
-  })
+    return matchesSearch;
+  });
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-GB")
-  }
+    return new Date(dateString).toLocaleDateString("en-GB");
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -112,7 +145,9 @@ export default function UsersPage() {
           <div className="flex">
             <AlertCircle className="h-5 w-5 text-red-400" />
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error loading users</h3>
+              <h3 className="text-sm font-medium text-red-800">
+                Error loading users
+              </h3>
               <div className="mt-2 text-sm text-red-700">
                 <p>{error}</p>
               </div>
@@ -125,7 +160,7 @@ export default function UsersPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -197,27 +232,37 @@ export default function UsersPage() {
                         />
                       ) : (
                         <span className="text-sm font-medium">
-                          {(user.full_name || user.email)?.charAt(0).toUpperCase()}
+                          {(user.full_name || user.email)
+                            ?.charAt(0)
+                            .toUpperCase()}
                         </span>
                       )}
                     </div>
                     <div>
-                      <div className="font-medium">{user.full_name || "No name"}</div>
+                      <div className="font-medium">
+                        {user.full_name || "No name"}
+                      </div>
                       <div className="text-sm text-gray-500">{user.email}</div>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>{user.phone_number || "—"}</TableCell>
-                <TableCell className="max-w-xs truncate">{user.address || "—"}</TableCell>
+                <TableCell className="max-w-xs truncate">
+                  {user.address || "—"}
+                </TableCell>
                 <TableCell>{formatDate(user.created_at)}</TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm">
-                      <Eye className="w-4 h-4" />
+                    <Button variant="ghost" size="sm" asChild>
+                      <a href={`/dashboard/users/${user.id}`}>
+                        <Eye className="w-4 h-4" />
+                      </a>
                     </Button>
-                    <Button variant="ghost" size="sm">
-                      <Edit className="w-4 h-4" />
+                    <Button variant="ghost" size="sm" asChild>
+                      <a href={`/dashboard/users/edit/${user.id}`}>
+                        <Edit className="w-4 h-4" />
+                      </a>
                     </Button>
                     <Button
                       variant="ghost"
@@ -237,9 +282,13 @@ export default function UsersPage() {
         {filteredUsers.length === 0 && (
           <div className="text-center py-12">
             <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No users found
+            </h3>
             <p className="text-gray-500">
-              {searchQuery ? "Try adjusting your search criteria" : "Users will appear here when they register"}
+              {searchQuery
+                ? "Try adjusting your search criteria"
+                : "Users will appear here when they register"}
             </p>
           </div>
         )}
@@ -256,7 +305,11 @@ export default function UsersPage() {
               <Button variant="outline" size="sm" disabled>
                 Previous
               </Button>
-              <Button variant="outline" size="sm" className="bg-blue-600 text-white">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-blue-600 text-white"
+              >
                 1
               </Button>
               <Button variant="outline" size="sm" disabled>
@@ -267,5 +320,5 @@ export default function UsersPage() {
         )}
       </div>
     </div>
-  )
+  );
 }

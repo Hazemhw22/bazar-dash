@@ -1,9 +1,8 @@
 "use client";
 
 import type React from "react";
-
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,8 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
-import type { User } from "@supabase/supabase-js";
-import type { WorkingHours, ShopInsert } from "@/types/database";
+import type { WorkingHours } from "@/types/database";
 import {
   ArrowLeft,
   Store,
@@ -53,12 +51,13 @@ const TIMEZONES = [
   { value: "Europe/London", label: "London (GMT)" },
 ];
 
-export default function AddShopPage() {
+export default function EditShopPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [ownerName, setOwnerName] = useState<string>("");
+  const params = useParams();
+  const shopId = params?.id as string;
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Form states
   const [name, setName] = useState("");
@@ -72,64 +71,58 @@ export default function AddShopPage() {
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
   const [isActive, setIsActive] = useState(true);
   const [timezone, setTimezone] = useState("Asia/Riyadh");
-  const [workingHours, setWorkingHours] = useState<WorkingHours[]>([
-    { day: "Monday", open_time: "09:00", close_time: "18:00", is_open: true },
-    { day: "Tuesday", open_time: "09:00", close_time: "18:00", is_open: true },
-    {
-      day: "Wednesday",
-      open_time: "09:00",
-      close_time: "18:00",
-      is_open: true,
-    },
-    { day: "Thursday", open_time: "09:00", close_time: "18:00", is_open: true },
-    { day: "Friday", open_time: "09:00", close_time: "18:00", is_open: true },
-    { day: "Saturday", open_time: "10:00", close_time: "16:00", is_open: true },
-    { day: "Sunday", open_time: "10:00", close_time: "16:00", is_open: false },
-  ]);
+  const [workingHours, setWorkingHours] = useState<WorkingHours[]>([]);
+  const [ownerName, setOwnerName] = useState<string>("");
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
-    getCurrentUser();
-  }, []);
+    fetchShop();
+    // eslint-disable-next-line
+  }, [shopId]);
 
-  useEffect(() => {
-    if (user) {
-      fetchOwnerName(user.id);
-    }
-  }, [user]);
-
-  const getCurrentUser = async () => {
-    try {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-
-      if (error) {
-        console.error("Auth error:", error);
-        return;
-      }
-
-      setUser(user);
-      if (user?.email) {
-        setEmail(user.email);
-      }
-    } catch (error) {
-      console.error("Error getting user:", error);
-    }
-  };
-
-  const fetchOwnerName = async (userId: string) => {
+  const fetchShop = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const { data, error } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", userId)
+        .from("shops")
+        .select("*")
+        .eq("id", shopId)
         .single();
-      if (!error && data?.full_name) {
-        setOwnerName(data.full_name);
+      if (error) throw error;
+      setName(data.name || "");
+      setDescription(data.description || "");
+      setEmail(data.email || "");
+      setPhoneNumber(data.phone_number || "");
+      setAddress(data.address || "");
+      setLogoUrl(data.logo_url || "");
+      setBackgroundImageUrl(data.background_image_url || "");
+      setIsActive(data.is_active);
+      setTimezone(data.timezone || "Asia/Riyadh");
+      setWorkingHours(
+        data.working_hours ||
+          DAYS_OF_WEEK.map((day) => ({
+            day,
+            open_time: "09:00",
+            close_time: "18:00",
+            is_open: true,
+          }))
+      );
+      // fetch owner name from profiles
+      if (data.owner_id) {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", data.owner_id)
+          .single();
+        setOwnerName(profile?.full_name || "");
+      } else {
+        setOwnerName("");
       }
-    } catch (error) {
-      setOwnerName("");
+    } catch (err: any) {
+      setError(err.message || "Unknown error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -143,26 +136,15 @@ export default function AddShopPage() {
         .toString(36)
         .substring(2)}.${fileExt}`;
       const filePath = `${folder}/${fileName}`;
-
       const { error: uploadError } = await supabase.storage
         .from("shop-images")
-        .upload(filePath, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError);
-        throw uploadError;
-      }
-
+        .upload(filePath, file, { cacheControl: "3600", upsert: false });
+      if (uploadError) throw uploadError;
       const { data } = supabase.storage
         .from("shop-images")
         .getPublicUrl(filePath);
-
       return data.publicUrl;
     } catch (error) {
-      console.error("Error uploading image:", error);
       return null;
     }
   };
@@ -170,11 +152,8 @@ export default function AddShopPage() {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploadingImage(true);
     setLogoFile(file);
-
-    // Create preview URL
     const previewUrl = URL.createObjectURL(file);
     setLogoUrl(previewUrl);
     setUploadingImage(false);
@@ -185,11 +164,8 @@ export default function AddShopPage() {
   ) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploadingImage(true);
     setBackgroundFile(file);
-
-    // Create preview URL
     const previewUrl = URL.createObjectURL(file);
     setBackgroundImageUrl(previewUrl);
     setUploadingImage(false);
@@ -220,36 +196,19 @@ export default function AddShopPage() {
     setWorkingHours(updated);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
+    setSaving(true);
+    setError(null);
     try {
-      // Validate required fields
-      if (!name.trim()) {
-        alert("Please enter a shop name");
-        return;
-      }
-
-      if (!email.trim()) {
-        alert("Please enter an email address");
-        return;
-      }
-
-      if (!user) {
-        alert("User not authenticated");
-        return;
-      }
-
-      // Upload logo
-      let finalLogoUrl = "🏪";
+      // Upload logo if changed
+      let finalLogoUrl = logoUrl;
       if (logoFile) {
         const uploadedUrl = await uploadImage(logoFile, "shops/logos");
         if (uploadedUrl) finalLogoUrl = uploadedUrl;
       }
-
-      // Upload background image
-      let finalBackgroundUrl = null;
+      // Upload background if changed
+      let finalBackgroundUrl = backgroundImageUrl;
       if (backgroundFile) {
         const uploadedUrl = await uploadImage(
           backgroundFile,
@@ -257,45 +216,33 @@ export default function AddShopPage() {
         );
         if (uploadedUrl) finalBackgroundUrl = uploadedUrl;
       }
-
-      const shopData: ShopInsert = {
-        name: name.trim(),
-        description: description.trim() || null,
-        owner_id: user.id,
-        email: email.trim(),
-        phone_number: phoneNumber.trim() || null,
-        address: address.trim() || null,
-        logo_url: finalLogoUrl,
-        background_image_url: finalBackgroundUrl,
-        is_active: isActive,
-        working_hours: workingHours,
-        timezone: timezone,
-      };
-
-      console.log("Inserting shop data:", shopData);
-
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("shops")
-        .insert(shopData)
-        .select();
-
-      if (error) {
-        console.error("Database error:", error);
-        throw error;
-      }
-
-      console.log("Shop created successfully:", data);
-      alert("Shop added successfully!");
-      router.push("/dashboard/shops");
-    } catch (error) {
-      console.error("Error adding shop:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      alert(`Error adding shop: ${errorMessage}`);
+        .update({
+          name: name.trim(),
+          description: description.trim() || null,
+          email: email.trim(),
+          phone_number: phoneNumber.trim() || null,
+          address: address.trim() || null,
+          logo_url: finalLogoUrl,
+          background_image_url: finalBackgroundUrl,
+          is_active: isActive,
+          working_hours: workingHours,
+          timezone: timezone,
+        })
+        .eq("id", shopId);
+      if (error) throw error;
+      alert("Shop updated successfully!");
+      router.push(`/dashboard/shops/${shopId}`);
+    } catch (err: any) {
+      setError(err.message || "Unknown error");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
   };
+
+  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
 
   return (
     <div className="space-y-6">
@@ -306,12 +253,11 @@ export default function AddShopPage() {
           Back
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Add New Shop</h1>
-          <p className="text-gray-600">Create a new shop for your business</p>
+          <h1 className="text-2xl font-bold text-gray-900">Edit Shop</h1>
+          <p className="text-gray-600">Update shop details and settings</p>
         </div>
       </div>
-
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSave} className="space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Information */}
           <div className="lg:col-span-2 space-y-6">
@@ -326,22 +272,18 @@ export default function AddShopPage() {
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter shop name"
                     required
                   />
                 </div>
-
                 <div>
                   <Label htmlFor="description">Description</Label>
                   <Textarea
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Enter shop description"
                     rows={4}
                   />
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="email">Email *</Label>
@@ -350,33 +292,27 @@ export default function AddShopPage() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="shop@example.com"
                       required
                     />
                   </div>
-
                   <div>
                     <Label htmlFor="phoneNumber">Phone Number</Label>
                     <Input
                       id="phoneNumber"
                       value={phoneNumber}
                       onChange={(e) => setPhoneNumber(e.target.value)}
-                      placeholder="+1234567890"
                     />
                   </div>
                 </div>
-
                 <div>
                   <Label htmlFor="address">Address</Label>
                   <Textarea
                     id="address"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Enter shop address"
                     rows={3}
                   />
                 </div>
-
                 <div>
                   <Label htmlFor="timezone">Timezone</Label>
                   <Select value={timezone} onValueChange={setTimezone}>
@@ -394,7 +330,6 @@ export default function AddShopPage() {
                 </div>
               </CardContent>
             </Card>
-
             {/* Working Hours */}
             <Card>
               <CardHeader>
@@ -414,14 +349,12 @@ export default function AddShopPage() {
                     <div className="w-20">
                       <Label className="text-sm font-medium">{hours.day}</Label>
                     </div>
-
                     <Switch
                       checked={hours.is_open}
                       onCheckedChange={(checked) =>
                         updateWorkingHours(index, "is_open", checked)
                       }
                     />
-
                     {hours.is_open ? (
                       <>
                         <div className="flex items-center space-x-2">
@@ -451,7 +384,6 @@ export default function AddShopPage() {
                             className="w-32"
                           />
                         </div>
-
                         <Button
                           type="button"
                           variant="outline"
@@ -470,7 +402,6 @@ export default function AddShopPage() {
                 ))}
               </CardContent>
             </Card>
-
             {/* Images */}
             <Card>
               <CardHeader>
@@ -513,7 +444,6 @@ export default function AddShopPage() {
                     </div>
                   </div>
                 </div>
-
                 {/* Background Image Upload */}
                 <div>
                   <Label>Background Image</Label>
@@ -553,7 +483,6 @@ export default function AddShopPage() {
               </CardContent>
             </Card>
           </div>
-
           {/* Sidebar */}
           <div className="space-y-6">
             <Card>
@@ -569,15 +498,10 @@ export default function AddShopPage() {
                     onCheckedChange={setIsActive}
                   />
                 </div>
-
                 <div className="text-sm text-gray-600">
                   <p>
                     <strong>Owner:</strong>{" "}
                     {ownerName ? ownerName : "Loading..."}
-                  </p>
-                  <p>
-                    <strong>Created:</strong>{" "}
-                    {new Date().toLocaleDateString("en-GB")}
                   </p>
                   <p>
                     <strong>Timezone:</strong> {timezone}
@@ -585,7 +509,6 @@ export default function AddShopPage() {
                 </div>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle>Preview</CardTitle>
@@ -622,7 +545,6 @@ export default function AddShopPage() {
                 </div>
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle>Today's Hours</CardTitle>
@@ -648,7 +570,6 @@ export default function AddShopPage() {
                 })()}
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle>Shop Features</CardTitle>
@@ -672,19 +593,18 @@ export default function AddShopPage() {
             </Card>
           </div>
         </div>
-
         {/* Submit Buttons */}
         <div className="flex items-center justify-end space-x-4">
           <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
           </Button>
-          <Button type="submit" disabled={loading || uploadingImage}>
+          <Button type="submit" disabled={saving || uploadingImage}>
             <Save className="w-4 h-4 mr-2" />
-            {loading
-              ? "Creating Shop..."
+            {saving
+              ? "Saving..."
               : uploadingImage
               ? "Uploading Images..."
-              : "Create Shop"}
+              : "Save Changes"}
           </Button>
         </div>
       </form>

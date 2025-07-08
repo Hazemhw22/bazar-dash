@@ -1,59 +1,80 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { supabase } from "@/lib/supabase"
-import type { Category } from "@/types/database"
-import { Search, Plus, Trash2, Eye, Edit, Layers, AlertCircle } from "lucide-react"
-import Link from "next/link"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { supabase } from "@/lib/supabase";
+import type { Category } from "@/types/database";
+import {
+  Search,
+  Plus,
+  Trash2,
+  Eye,
+  Edit,
+  Layers,
+  AlertCircle,
+} from "lucide-react";
+import Link from "next/link";
 
 interface CategoryWithDetails extends Category {
-  parent_name?: string
-  products_count?: number
+  parent_name?: string;
+  products_count?: number;
 }
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<CategoryWithDetails[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [typeFilter, setTypeFilter] = useState("all")
-  const [error, setError] = useState<string | null>(null)
+  const [categories, setCategories] = useState<CategoryWithDetails[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchCategories()
-  }, [])
+    fetchCategories();
+  }, []);
 
   const fetchCategories = async () => {
     try {
-      setError(null)
-      setLoading(true)
-      console.log("Fetching categories...")
+      setError(null);
+      setLoading(true);
+      console.log("Fetching categories...");
 
       // First, get all categories
       const { data: categoriesData, error: categoriesError } = await supabase
         .from("categories")
         .select("*")
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: false });
 
       if (categoriesError) {
-        console.error("Categories error:", categoriesError)
-        throw categoriesError
+        console.error("Categories error:", categoriesError);
+        throw categoriesError;
       }
 
       if (!categoriesData) {
-        setCategories([])
-        return
+        setCategories([]);
+        return;
       }
 
       // Then get parent names and product counts
       const categoriesWithDetails = await Promise.all(
         categoriesData.map(async (category) => {
           try {
-            let parent_name = null
+            let parent_name = null;
 
             // Get parent name if exists
             if (category.parent_id) {
@@ -61,85 +82,98 @@ export default function CategoriesPage() {
                 .from("categories")
                 .select("name")
                 .eq("id", category.parent_id)
-                .single()
+                .single();
 
-              parent_name = parentData?.name || null
+              parent_name = parentData?.name || null;
             }
 
             // Get product count
             const { count } = await supabase
               .from("products")
               .select("*", { count: "exact", head: true })
-              .eq("category_id", category.id)
+              .eq("category_id", category.id);
 
             return {
               ...category,
               parent_name,
               products_count: count || 0,
-            }
+            };
           } catch (error) {
-            console.error(`Error processing category ${category.id}:`, error)
+            console.error(`Error processing category ${category.id}:`, error);
             return {
               ...category,
               parent_name: null,
               products_count: 0,
-            }
+            };
           }
-        }),
-      )
+        })
+      );
 
-      setCategories(categoriesWithDetails)
+      setCategories(categoriesWithDetails);
     } catch (error) {
-      console.error("Error fetching categories:", error)
-      setError(error instanceof Error ? error.message : "Unknown error occurred")
+      console.error("Error fetching categories:", error);
+      setError(
+        error instanceof Error ? error.message : "Unknown error occurred"
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const deleteCategory = async (categoryId: string) => {
-    if (!confirm("Are you sure you want to delete this category? This action cannot be undone.")) {
-      return
+    if (
+      !confirm(
+        "Are you sure you want to delete this category? This action cannot be undone."
+      )
+    ) {
+      return;
     }
 
     try {
-      const { error } = await supabase.from("categories").delete().eq("id", categoryId)
+      const { error } = await supabase
+        .from("categories")
+        .delete()
+        .eq("id", categoryId);
 
       if (error) {
-        console.error("Delete error:", error)
-        throw error
+        console.error("Delete error:", error);
+        throw error;
       }
 
       // إزالة الفئة من القائمة محلياً
-      setCategories((prev) => prev.filter((category) => category.id !== categoryId))
+      setCategories((prev) =>
+        prev.filter((category) => category.id !== categoryId)
+      );
 
-      alert("Category deleted successfully!")
+      alert("Category deleted successfully!");
     } catch (error) {
-      console.error("Error deleting category:", error)
-      alert("Error deleting category")
+      console.error("Error deleting category:", error);
+      alert("Error deleting category");
     }
-  }
+  };
 
   const filteredCategories = categories.filter((category) => {
-    const matchesSearch = category.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesSearch = category.name
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
     const matchesType =
       typeFilter === "all" ||
       (typeFilter === "main" && !category.parent_id) ||
-      (typeFilter === "sub" && category.parent_id)
+      (typeFilter === "sub" && category.parent_id);
 
-    return matchesSearch && matchesType
-  })
+    return matchesSearch && matchesType;
+  });
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-GB")
-  }
+    return new Date(dateString).toLocaleDateString("en-GB");
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -156,7 +190,9 @@ export default function CategoriesPage() {
           <div className="flex">
             <AlertCircle className="h-5 w-5 text-red-400" />
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error loading categories</h3>
+              <h3 className="text-sm font-medium text-red-800">
+                Error loading categories
+              </h3>
               <div className="mt-2 text-sm text-red-700">
                 <p>{error}</p>
               </div>
@@ -169,7 +205,7 @@ export default function CategoriesPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -181,7 +217,9 @@ export default function CategoriesPage() {
           <p className="text-gray-600">Manage your product categories</p>
         </div>
         <div className="flex items-center space-x-3">
-          <Badge variant="secondary">{filteredCategories.length} categories</Badge>
+          <Badge variant="secondary">
+            {filteredCategories.length} categories
+          </Badge>
           <Button className="bg-blue-600 hover:bg-blue-700" asChild>
             <Link href="/dashboard/categories/add">
               <Plus className="w-4 h-4 mr-2" />
@@ -223,7 +261,6 @@ export default function CategoriesPage() {
             <TableRow>
               <TableHead>Category</TableHead>
               <TableHead>Type</TableHead>
-              <TableHead>Parent Category</TableHead>
               <TableHead>Products</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Created</TableHead>
@@ -236,7 +273,8 @@ export default function CategoriesPage() {
                 <TableCell>
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-sm">
-                      {typeof category.logo_url === "string" && category.logo_url.startsWith("http") ? (
+                      {typeof category.logo_url === "string" &&
+                      category.logo_url.startsWith("http") ? (
                         <img
                           src={category.logo_url || "/placeholder.svg"}
                           alt={category.name}
@@ -254,19 +292,26 @@ export default function CategoriesPage() {
                     {category.parent_id ? "Sub Category" : "Main Category"}
                   </Badge>
                 </TableCell>
-                <TableCell>{category.parent_name || "—"}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{category.products_count} products</Badge>
+                  <Badge variant="outline">
+                    {category.products_count} products
+                  </Badge>
                 </TableCell>
-                <TableCell className="max-w-xs truncate">{category.description || "No description"}</TableCell>
+                <TableCell className="max-w-xs truncate">
+                  {category.description || "No description"}
+                </TableCell>
                 <TableCell>{formatDate(category.created_at)}</TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm">
-                      <Eye className="w-4 h-4" />
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/dashboard/categories/${category.id}`}>
+                        <Eye className="w-4 h-4" />
+                      </Link>
                     </Button>
-                    <Button variant="ghost" size="sm">
-                      <Edit className="w-4 h-4" />
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/dashboard/categories/edit/${category.id}`}>
+                        <Edit className="w-4 h-4" />
+                      </Link>
                     </Button>
                     <Button
                       variant="ghost"
@@ -286,7 +331,9 @@ export default function CategoriesPage() {
         {filteredCategories.length === 0 && (
           <div className="text-center py-12">
             <Layers className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No categories found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No categories found
+            </h3>
             <p className="text-gray-500">
               {searchQuery || typeFilter !== "all"
                 ? "Try adjusting your search or filter criteria"
@@ -300,14 +347,19 @@ export default function CategoriesPage() {
           <div className="flex items-center justify-between p-4 border-t">
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-700">
-                Showing {filteredCategories.length} of {categories.length} categories
+                Showing {filteredCategories.length} of {categories.length}{" "}
+                categories
               </span>
             </div>
             <div className="flex items-center space-x-2">
               <Button variant="outline" size="sm" disabled>
                 Previous
               </Button>
-              <Button variant="outline" size="sm" className="bg-blue-600 text-white">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-blue-600 text-white"
+              >
                 1
               </Button>
               <Button variant="outline" size="sm" disabled>
@@ -318,5 +370,5 @@ export default function CategoriesPage() {
         )}
       </div>
     </div>
-  )
+  );
 }

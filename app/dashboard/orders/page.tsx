@@ -1,168 +1,230 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { supabase } from "@/lib/supabase"
-import type { Order, OrderStatus } from "@/types/database"
-import { Search, Plus, Trash2, Eye, ShoppingCart, AlertCircle } from "lucide-react"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { supabase } from "@/lib/supabase";
+import type { Order, OrderStatus } from "@/types/database";
+import {
+  Search,
+  Plus,
+  Trash2,
+  Eye,
+  ShoppingCart,
+  AlertCircle,
+} from "lucide-react";
 
 interface OrderWithDetails extends Order {
-  customer_name?: string
-  items_count?: number
+  customer_name?: string;
+  items_count?: number;
 }
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<OrderWithDetails[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [error, setError] = useState<string | null>(null)
+  const [orders, setOrders] = useState<OrderWithDetails[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchOrders()
-  }, [])
+    fetchOrders();
+  }, []);
 
   const fetchOrders = async () => {
     try {
-      setError(null)
-      setLoading(true)
-      console.log("Fetching orders...")
+      setError(null);
+      setLoading(true);
+      console.log("Fetching orders...");
 
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
-        .select(`
-          *,
-          profiles!orders_customer_id_fkey (
-            full_name,
-            email
-          )
-        `)
-        .order("created_at", { ascending: false })
+        .select("*")
+        .order("created_at", { ascending: false });
 
       if (ordersError) {
-        console.error("Orders error:", ordersError)
-        throw ordersError
+        console.error("Orders error:", ordersError);
+        throw ordersError;
       }
 
       if (!ordersData) {
-        setOrders([])
-        return
+        setOrders([]);
+        return;
       }
 
-      // Get order items count for each order
+      // Get order items count and customer name for each order
       const ordersWithDetails = await Promise.all(
         ordersData.map(async (order) => {
           try {
+            // Get items count
             const { count } = await supabase
               .from("order_items")
               .select("*", { count: "exact", head: true })
-              .eq("order_id", order.id)
+              .eq("order_id", order.id);
+
+            // Get customer name/email
+            let customer_name = "Unknown Customer";
+            if (order.customer_id) {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("full_name, email")
+                .eq("id", order.customer_id)
+                .single();
+              customer_name =
+                profile?.full_name || profile?.email || "Unknown Customer";
+            }
 
             return {
               ...order,
-              customer_name: order.profiles?.full_name || order.profiles?.email || "Unknown Customer",
+              customer_name,
               items_count: count || 0,
-            }
+            };
           } catch (error) {
-            console.error(`Error processing order ${order.id}:`, error)
+            console.error(`Error processing order ${order.id}:`, error);
             return {
               ...order,
-              customer_name: order.profiles?.full_name || order.profiles?.email || "Unknown Customer",
+              customer_name: "Unknown Customer",
               items_count: 0,
-            }
+            };
           }
-        }),
-      )
+        })
+      );
 
-      setOrders(ordersWithDetails)
+      setOrders(ordersWithDetails);
     } catch (error) {
-      console.error("Error fetching orders:", error)
-      setError(error instanceof Error ? error.message : "Unknown error occurred")
+      console.error("Error fetching orders:", error);
+      setError(
+        error instanceof Error ? error.message : "Unknown error occurred"
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const updateOrderStatus = async (orderId: string, newStatus: OrderStatus) => {
     try {
-      const { error } = await supabase.from("orders").update({ status: newStatus }).eq("id", orderId)
+      const { error } = await supabase
+        .from("orders")
+        .update({ status: newStatus })
+        .eq("id", orderId);
 
-      if (error) throw error
+      if (error) throw error;
 
       // تحديث الحالة محلياً
-      setOrders((prev) => prev.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order)))
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === orderId ? { ...order, status: newStatus } : order
+        )
+      );
 
-      alert("Order status updated successfully!")
+      alert("Order status updated successfully!");
     } catch (error) {
-      console.error("Error updating order status:", error)
-      alert("Error updating order status")
+      console.error("Error updating order status:", error);
+      alert("Error updating order status");
     }
-  }
+  };
 
   const deleteOrder = async (orderId: string) => {
-    if (!confirm("Are you sure you want to delete this order? This action cannot be undone.")) {
-      return
+    if (
+      !confirm(
+        "Are you sure you want to delete this order? This action cannot be undone."
+      )
+    ) {
+      return;
     }
 
     try {
-      const { error } = await supabase.from("orders").delete().eq("id", orderId)
+      const { error } = await supabase
+        .from("orders")
+        .delete()
+        .eq("id", orderId);
 
-      if (error) throw error
+      if (error) throw error;
 
       // إزالة الطلب من القائمة محلياً
-      setOrders((prev) => prev.filter((order) => order.id !== orderId))
+      setOrders((prev) => prev.filter((order) => order.id !== orderId));
 
-      alert("Order deleted successfully!")
+      alert("Order deleted successfully!");
     } catch (error) {
-      console.error("Error deleting order:", error)
-      alert("Error deleting order")
+      console.error("Error deleting order:", error);
+      alert("Error deleting order");
     }
-  }
+  };
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
       order.customer_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.tracking_number?.toLowerCase().includes(searchQuery.toLowerCase())
+      order.tracking_number?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus = statusFilter === "all" || order.status === statusFilter
+    const matchesStatus =
+      statusFilter === "all" || order.status === statusFilter;
 
-    return matchesSearch && matchesStatus
-  })
+    return matchesSearch && matchesStatus;
+  });
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-GB")
-  }
+    return new Date(dateString).toLocaleDateString("en-GB");
+  };
 
   const getStatusBadge = (status: OrderStatus) => {
     const statusConfig = {
-      pending: { variant: "secondary" as const, color: "bg-yellow-100 text-yellow-800" },
-      processing: { variant: "default" as const, color: "bg-blue-100 text-blue-800" },
-      shipped: { variant: "default" as const, color: "bg-purple-100 text-purple-800" },
-      delivered: { variant: "default" as const, color: "bg-green-100 text-green-800" },
-      cancelled: { variant: "secondary" as const, color: "bg-red-100 text-red-800" },
-      returned: { variant: "secondary" as const, color: "bg-gray-100 text-gray-800" },
-    }
+      pending: {
+        variant: "secondary" as const,
+        color: "bg-yellow-100 text-yellow-800",
+      },
+      processing: {
+        variant: "default" as const,
+        color: "bg-blue-100 text-blue-800",
+      },
+      shipped: {
+        variant: "default" as const,
+        color: "bg-purple-100 text-purple-800",
+      },
+      delivered: {
+        variant: "default" as const,
+        color: "bg-green-100 text-green-800",
+      },
+      cancelled: {
+        variant: "secondary" as const,
+        color: "bg-red-100 text-red-800",
+      },
+      returned: {
+        variant: "secondary" as const,
+        color: "bg-gray-100 text-gray-800",
+      },
+    };
 
-    const config = statusConfig[status] || statusConfig.pending
+    const config = statusConfig[status] || statusConfig.pending;
 
     return (
       <Badge className={config.color + " hover:" + config.color}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </Badge>
-    )
-  }
+    );
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -179,7 +241,9 @@ export default function OrdersPage() {
           <div className="flex">
             <AlertCircle className="h-5 w-5 text-red-400" />
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error loading orders</h3>
+              <h3 className="text-sm font-medium text-red-800">
+                Error loading orders
+              </h3>
               <div className="mt-2 text-sm text-red-700">
                 <p>{error}</p>
               </div>
@@ -192,7 +256,7 @@ export default function OrdersPage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -205,10 +269,7 @@ export default function OrdersPage() {
         </div>
         <div className="flex items-center space-x-3">
           <Badge variant="secondary">{filteredOrders.length} orders</Badge>
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4 mr-2" />
-            New Order
-          </Button>
+          
         </div>
       </div>
 
@@ -263,34 +324,46 @@ export default function OrdersPage() {
                   <div>
                     <div className="font-medium">#{order.id.slice(0, 8)}</div>
                     {order.tracking_number && (
-                      <div className="text-sm text-gray-500">Track: {order.tracking_number}</div>
+                      <div className="text-sm text-gray-500">
+                        Track: {order.tracking_number}
+                      </div>
                     )}
                   </div>
                 </TableCell>
                 <TableCell>
                   <div>
                     <div className="font-medium">{order.customer_name}</div>
-                    <div className="text-sm text-gray-500">{order.shipping_address.full_name}</div>
+                    <div className="text-sm text-gray-500">
+                      {order.shipping_address.full_name}
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline">{order.items_count} items</Badge>
                 </TableCell>
                 <TableCell>
-                  <div className="font-semibold">${order.total_amount.toFixed(2)}</div>
+                  <div className="font-semibold">
+                    ${order.total_amount.toFixed(2)}
+                  </div>
                 </TableCell>
                 <TableCell>{getStatusBadge(order.status)}</TableCell>
                 <TableCell>
                   <div>
-                    <div className="text-sm">{order.payment_method.replace("_", " ").toUpperCase()}</div>
+                    <div className="text-sm">
+                      {order.payment_method.replace("_", " ").toUpperCase()}
+                    </div>
                     <Badge
-                      variant={order.payment_status === "paid" ? "default" : "secondary"}
+                      variant={
+                        order.payment_status === "paid"
+                          ? "default"
+                          : "secondary"
+                      }
                       className={
                         order.payment_status === "paid"
                           ? "bg-green-100 text-green-800 hover:bg-green-100"
                           : order.payment_status === "failed"
-                            ? "bg-red-100 text-red-800 hover:bg-red-100"
-                            : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                          ? "bg-red-100 text-red-800 hover:bg-red-100"
+                          : "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
                       }
                     >
                       {order.payment_status}
@@ -305,7 +378,9 @@ export default function OrdersPage() {
                     </Button>
                     <Select
                       value={order.status}
-                      onValueChange={(value) => updateOrderStatus(order.id, value as OrderStatus)}
+                      onValueChange={(value) =>
+                        updateOrderStatus(order.id, value as OrderStatus)
+                      }
                     >
                       <SelectTrigger className="w-24 h-8">
                         <SelectValue />
@@ -337,7 +412,9 @@ export default function OrdersPage() {
         {filteredOrders.length === 0 && (
           <div className="text-center py-12">
             <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No orders found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No orders found
+            </h3>
             <p className="text-gray-500">
               {searchQuery || statusFilter !== "all"
                 ? "Try adjusting your search or filter criteria"
@@ -358,7 +435,11 @@ export default function OrdersPage() {
               <Button variant="outline" size="sm" disabled>
                 Previous
               </Button>
-              <Button variant="outline" size="sm" className="bg-blue-600 text-white">
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-blue-600 text-white"
+              >
                 1
               </Button>
               <Button variant="outline" size="sm" disabled>
@@ -369,5 +450,5 @@ export default function OrdersPage() {
         )}
       </div>
     </div>
-  )
+  );
 }

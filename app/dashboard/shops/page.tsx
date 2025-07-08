@@ -95,6 +95,19 @@ export default function ShopsPage() {
               );
             }
 
+            // جلب اسم المالك من profiles
+            let ownerName = "Unknown";
+            if (shop.owner_id) {
+              const { data: ownerProfile, error: ownerError } = await supabase
+                .from("profiles")
+                .select("full_name")
+                .eq("id", shop.owner_id)
+                .single();
+              if (!ownerError && ownerProfile?.full_name) {
+                ownerName = ownerProfile.full_name;
+              }
+            }
+
             // حساب حالة المتجر الحالية
             const isCurrentlyOpen = checkIfShopIsOpen(
               shop.working_hours,
@@ -104,7 +117,7 @@ export default function ShopsPage() {
 
             return {
               ...shop,
-              owner_name: "Unknown", // لا تحاول جلب اسم المالك من profiles
+              owner_name: ownerName,
               products_count: productCount || 0,
               is_currently_open: isCurrentlyOpen,
               today_hours: todayHours,
@@ -433,11 +446,15 @@ export default function ShopsPage() {
                 <TableCell>{formatDate(shop.created_at)}</TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm">
-                      <Eye className="w-4 h-4" />
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/dashboard/shops/${shop.id}`}>
+                        <Eye className="w-4 h-4" />
+                      </Link>
                     </Button>
-                    <Button variant="ghost" size="sm">
-                      <Edit className="w-4 h-4" />
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/dashboard/shops/edit/${shop.id}`}>
+                        <Edit className="w-4 h-4" />
+                      </Link>
                     </Button>
                     <Button
                       variant="ghost"
