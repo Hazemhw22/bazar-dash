@@ -38,10 +38,17 @@ export default function AddProductPage() {
   const [stockQuantity, setStockQuantity] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [shopId, setShopId] = useState("");
-  const [specifications, setSpecifications] = useState("");
+  const [specifications, setSpecifications] = useState<{ title: string; description: string }[]>([]);
+  const [specTitle, setSpecTitle] = useState("");
+  const [specDesc, setSpecDesc] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [images, setImages] = useState<string[]>([]);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
+
+  // إضافة حالة لصورة رئيسية
+  const [mainImageFile, setMainImageFile] = useState<File | null>(null);
+  const [mainImagePreview, setMainImagePreview] = useState<string>("");
+  const [mainImageUrl, setMainImageUrl] = useState<string>("");
 
   useEffect(() => {
     getCurrentUser();
@@ -162,6 +169,14 @@ export default function AddProductPage() {
     }
   };
 
+  // رفع صورة رئيسية
+  const handleMainImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMainImageFile(file);
+    setMainImagePreview(URL.createObjectURL(file));
+  };
+
   const removeImage = (index: number) => {
     const newImages = images.filter((_, i) => i !== index);
     const newFiles = imageFiles.filter((_, i) => i !== index);
@@ -173,10 +188,21 @@ export default function AddProductPage() {
     setImageFiles(newFiles);
   };
 
+  // إضافة عنوان وشرح للمواصفات
+  const addSpecification = () => {
+    if (specTitle.trim()) {
+      setSpecifications([...specifications, { title: specTitle.trim(), description: specDesc.trim() }]);
+      setSpecTitle("");
+      setSpecDesc("");
+    }
+  };
+  const removeSpecification = (index: number) => {
+    setSpecifications(specifications.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       // Validate required fields
       if (!name.trim()) {
@@ -204,7 +230,14 @@ export default function AddProductPage() {
         return;
       }
 
-      // Upload images
+      // رفع صورة رئيسية
+      let uploadedMainImageUrl = "";
+      if (mainImageFile) {
+        const url = await uploadImage(mainImageFile);
+        if (url) uploadedMainImageUrl = url;
+        setMainImageUrl(uploadedMainImageUrl);
+      }
+      // رفع صور أخرى
       const uploadedImageUrls: string[] = [];
       for (const file of imageFiles) {
         const uploadedUrl = await uploadImage(file);
@@ -219,16 +252,9 @@ export default function AddProductPage() {
         stock_quantity: Number.parseInt(stockQuantity) || 0,
         category_id: categoryId,
         shop_id: shopId,
-        specifications: specifications.trim()
-          ? (() => {
-              try {
-                return JSON.parse(specifications);
-              } catch {
-                return null;
-              }
-            })()
-          : null,
+        specifications: specifications.length > 0 ? specifications : null,
         is_active: isActive,
+        main_image: uploadedMainImageUrl || (uploadedImageUrls[0] || null),
         images: uploadedImageUrls,
       };
 
@@ -403,13 +429,49 @@ export default function AddProductPage() {
 
                 <div>
                   <Label htmlFor="specifications">Specifications</Label>
-                  <Textarea
-                    id="specifications"
-                    value={specifications}
-                    onChange={(e) => setSpecifications(e.target.value)}
-                    placeholder="Enter product specifications (optional)"
-                    rows={3}
-                  />
+                  <div className="flex flex-col space-y-2">
+                    {specifications.map((spec, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <p className="font-semibold">{spec.title}</p>
+                          <p className="text-sm text-gray-600">
+                            {spec.description}
+                          </p>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removeSpecification(index)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+
+                    <div className="flex space-x-2">
+                      <Input
+                        value={specTitle}
+                        onChange={(e) => setSpecTitle(e.target.value)}
+                        placeholder="Specification title"
+                        className="flex-1"
+                      />
+                      <Input
+                        value={specDesc}
+                        onChange={(e) => setSpecDesc(e.target.value)}
+                        placeholder="Specification description"
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={addSpecification}
+                        disabled={!specTitle.trim()}
+                      >
+                        Add
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -473,6 +535,45 @@ export default function AddProductPage() {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Main Image */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Main Product Image</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label>Upload Main Image</Label>
+                  <div className="mt-2 flex items-center justify-center w-full">
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        {mainImagePreview ? (
+                          <img
+                            src={mainImagePreview}
+                            alt="Main Preview"
+                            className="w-24 h-24 object-cover rounded-lg mb-2"
+                          />
+                        ) : (
+                          <Upload className="w-8 h-8 mb-4 text-gray-500" />
+                        )}
+                        <p className="mb-2 text-sm text-gray-500">
+                          <span className="font-semibold">Click to upload</span>{" "}
+                          main image
+                        </p>
+                        <p className="text-xs text-gray-500">PNG, JPG or GIF</p>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleMainImageUpload}
+                        disabled={uploadingImages}
+                      />
+                    </label>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

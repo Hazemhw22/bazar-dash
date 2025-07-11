@@ -13,6 +13,11 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
+type Specification = {
+  title: string;
+  description: string;
+};
+
 export default function ProductDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -48,6 +53,19 @@ export default function ProductDetailsPage() {
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
   if (!product) return <div className="p-8 text-center">Product not found</div>;
 
+  const {
+    name,
+    description,
+    images,
+    categories,
+    shops,
+    price,
+    discount_price,
+    stock_quantity,
+    is_active,
+    specifications,
+  } = product;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center space-x-4">
@@ -59,15 +77,15 @@ export default function ProductDetailsPage() {
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>{product.name}</CardTitle>
+          <CardTitle>{name}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-4">
             <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center">
-              {product.images && product.images.length > 0 ? (
+              {images && images.length > 0 ? (
                 <img
-                  src={product.images[0]}
-                  alt={product.name}
+                  src={images[0]}
+                  alt={name}
                   className="w-full h-full object-cover rounded-lg"
                 />
               ) : (
@@ -75,38 +93,45 @@ export default function ProductDetailsPage() {
               )}
             </div>
             <div>
-              <div className="font-bold text-lg">{product.name}</div>
-              <div className="text-gray-600">{product.description}</div>
+              <div className="font-bold text-lg">{name}</div>
+              <div className="text-gray-600">{description}</div>
               <div className="mt-2">
                 <Badge variant="outline">
-                  {product.categories?.name || "Uncategorized"}
+                  {categories?.name || "Uncategorized"}
                 </Badge>
                 <Badge variant="outline" className="ml-2">
-                  {product.shops?.name || "Unknown Shop"}
+                  {shops?.name || "Unknown Shop"}
                 </Badge>
               </div>
               <div className="mt-2">
-                <span className="font-semibold">
-                  ${product.price.toFixed(2)}
-                </span>
-                {product.discount_price && (
+                <span className="font-semibold">${price.toFixed(2)}</span>
+                {discount_price && (
                   <span className="ml-2 text-green-600">
-                    Sale: ${product.discount_price.toFixed(2)}
+                    Sale: ${discount_price.toFixed(2)}
                   </span>
                 )}
               </div>
               <div className="mt-2">
-                <span className="font-medium">
-                  Stock: {product.stock_quantity}
-                </span>
+                <span className="font-medium">Stock: {stock_quantity}</span>
               </div>
               <div className="mt-2">
-                <Badge variant={product.is_active ? "default" : "secondary"}>
-                  {product.is_active ? "Active" : "Inactive"}
+                <Badge variant={is_active ? "default" : "secondary"}>
+                  {is_active ? "Active" : "Inactive"}
                 </Badge>
               </div>
             </div>
           </div>
+          {/* عرض المواصفات كعنوان وشرح */}
+          {specifications && specifications.length > 0 && (
+            <div className="space-y-2">
+              {specifications.map((spec: Specification, idx: number) => (
+              <div key={idx} className="p-2 border rounded-lg">
+                <p className="font-semibold">{spec.title}</p>
+                <p className="text-sm text-gray-600">{spec.description}</p>
+              </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

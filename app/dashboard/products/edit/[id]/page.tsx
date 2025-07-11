@@ -41,6 +41,11 @@ export default function EditProductPage() {
   const [categories, setCategories] = useState<any[]>([]);
   const [shops, setShops] = useState<any[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [specifications, setSpecifications] = useState<
+    { title: string; description: string }[]
+  >([]);
+  const [specTitle, setSpecTitle] = useState("");
+  const [specDesc, setSpecDesc] = useState("");
 
   useEffect(() => {
     fetchProduct();
@@ -68,6 +73,7 @@ export default function EditProductPage() {
       setCategoryId(data.category_id || "");
       setShopId(data.shop_id || "");
       setImages(data.images || []);
+      setSpecifications(data.specifications || []);
     } catch (err: any) {
       setError(err.message || "Unknown error");
     } finally {
@@ -115,6 +121,21 @@ export default function EditProductPage() {
     setUploadingImage(false);
   };
 
+  // إضافة عنوان وشرح للمواصفات
+  const addSpecification = () => {
+    if (specTitle.trim()) {
+      setSpecifications([
+        ...specifications,
+        { title: specTitle.trim(), description: specDesc.trim() },
+      ]);
+      setSpecTitle("");
+      setSpecDesc("");
+    }
+  };
+  const removeSpecification = (index: number) => {
+    setSpecifications(specifications.filter((_, i) => i !== index));
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -127,19 +148,21 @@ export default function EditProductPage() {
         );
         finalImages = uploaded.filter(Boolean) as string[];
       }
+      const productData = {
+        name: name.trim(),
+        description: description.trim() || null,
+        price: price,
+        discount_price: discountPrice,
+        stock_quantity: stockQuantity,
+        is_active: isActive,
+        category_id: categoryId,
+        shop_id: shopId,
+        images: finalImages,
+        specifications: specifications.length > 0 ? specifications : null,
+      };
       const { error } = await supabase
         .from("products")
-        .update({
-          name: name.trim(),
-          description: description.trim() || null,
-          price: price,
-          discount_price: discountPrice,
-          stock_quantity: stockQuantity,
-          is_active: isActive,
-          category_id: categoryId,
-          shop_id: shopId,
-          images: finalImages,
-        })
+        .update(productData)
         .eq("id", productId);
       if (error) throw error;
       alert("Product updated successfully!");
@@ -307,6 +330,84 @@ export default function EditProductPage() {
                   </label>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="grid grid-cols-1 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Specifications</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="specTitle">Specification Title</Label>
+                  <Input
+                    id="specTitle"
+                    value={specTitle}
+                    onChange={(e) => setSpecTitle(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="specDesc">Specification Description</Label>
+                  <Input
+                    id="specDesc"
+                    value={specDesc}
+                    onChange={(e) => setSpecDesc(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  onClick={addSpecification}
+                  disabled={!specTitle}
+                >
+                  Add Specification
+                </Button>
+              </div>
+              {specifications.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-lg font-semibold">
+                    Current Specifications
+                  </h3>
+                  <div className="mt-2 space-y-2">
+                    {specifications.map((spec, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div>
+                          <p className="text-sm font-medium">{spec.title}</p>
+                          <p className="text-sm text-gray-500">
+                            {spec.description}
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => removeSpecification(index)}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
