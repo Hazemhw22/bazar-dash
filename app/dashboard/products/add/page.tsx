@@ -38,7 +38,9 @@ export default function AddProductPage() {
   const [stockQuantity, setStockQuantity] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [shopId, setShopId] = useState("");
-  const [specifications, setSpecifications] = useState<{ title: string; description: string }[]>([]);
+  const [specifications, setSpecifications] = useState<
+    { title: string; description: string }[]
+  >([]);
   const [specTitle, setSpecTitle] = useState("");
   const [specDesc, setSpecDesc] = useState("");
   const [isActive, setIsActive] = useState(true);
@@ -49,6 +51,13 @@ export default function AddProductPage() {
   const [mainImageFile, setMainImageFile] = useState<File | null>(null);
   const [mainImagePreview, setMainImagePreview] = useState<string>("");
   const [mainImageUrl, setMainImageUrl] = useState<string>("");
+
+  // خصائص المنتج (عنوان الخاصية وقائمة الخيارات)
+  const [properties, setProperties] = useState<
+    { title: string; options: string[] }[]
+  >([]);
+  const [propertyTitle, setPropertyTitle] = useState("");
+  const [propertyOptions, setPropertyOptions] = useState<string[]>([""]);
 
   useEffect(() => {
     getCurrentUser();
@@ -191,13 +200,45 @@ export default function AddProductPage() {
   // إضافة عنوان وشرح للمواصفات
   const addSpecification = () => {
     if (specTitle.trim()) {
-      setSpecifications([...specifications, { title: specTitle.trim(), description: specDesc.trim() }]);
+      setSpecifications([
+        ...specifications,
+        { title: specTitle.trim(), description: specDesc.trim() },
+      ]);
       setSpecTitle("");
       setSpecDesc("");
     }
   };
   const removeSpecification = (index: number) => {
     setSpecifications(specifications.filter((_, i) => i !== index));
+  };
+
+  // إضافة خاصية جديدة
+  const addProperty = () => {
+    if (propertyTitle.trim() && propertyOptions.some((opt) => opt.trim())) {
+      setProperties([
+        ...properties,
+        {
+          title: propertyTitle.trim(),
+          options: propertyOptions.map((opt) => opt.trim()).filter(Boolean),
+        },
+      ]);
+      setPropertyTitle("");
+      setPropertyOptions([""]);
+    }
+  };
+  const removeProperty = (index: number) => {
+    setProperties(properties.filter((_, i) => i !== index));
+  };
+  const handleOptionChange = (idx: number, value: string) => {
+    setPropertyOptions((options) =>
+      options.map((opt, i) => (i === idx ? value : opt))
+    );
+  };
+  const addOptionField = () => {
+    setPropertyOptions((options) => [...options, ""]);
+  };
+  const removeOptionField = (idx: number) => {
+    setPropertyOptions((options) => options.filter((_, i) => i !== idx));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -253,8 +294,9 @@ export default function AddProductPage() {
         category_id: categoryId,
         shop_id: shopId,
         specifications: specifications.length > 0 ? specifications : null,
+        properties: properties.length > 0 ? properties : null,
         is_active: isActive,
-        main_image: uploadedMainImageUrl || (uploadedImageUrls[0] || null),
+        main_image: uploadedMainImageUrl || uploadedImageUrls[0] || null,
         images: uploadedImageUrls,
       };
 
@@ -469,6 +511,81 @@ export default function AddProductPage() {
                         disabled={!specTitle.trim()}
                       >
                         Add
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* خصائص المنتج (عنوان الخاصية وقائمة الخيارات) */}
+                <div>
+                  <Label htmlFor="properties">Product Properties</Label>
+                  <div className="flex flex-col space-y-2">
+                    {properties.map((prop, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <p className="font-semibold">{prop.title}</p>
+                          <ul className="text-sm text-gray-600 list-disc ml-4">
+                            {prop.options.map((opt, i) => (
+                              <li key={i}>{opt}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removeProperty(index)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                    <div className="flex flex-col space-y-2">
+                      <Input
+                        value={propertyTitle}
+                        onChange={(e) => setPropertyTitle(e.target.value)}
+                        placeholder="Property title (e.g. Capacity, Color)"
+                        className="flex-1"
+                      />
+                      {propertyOptions.map((opt, idx) => (
+                        <div key={idx} className="flex space-x-2 items-center">
+                          <Input
+                            value={opt}
+                            onChange={(e) =>
+                              handleOptionChange(idx, e.target.value)
+                            }
+                            placeholder={`Option ${idx + 1}`}
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => removeOptionField(idx)}
+                            disabled={propertyOptions.length === 1}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={addOptionField}
+                      >
+                        Add Option
+                      </Button>
+                      <Button
+                        onClick={addProperty}
+                        disabled={
+                          !propertyTitle.trim() ||
+                          !propertyOptions.some((opt) => opt.trim())
+                        }
+                      >
+                        Add Property
                       </Button>
                     </div>
                   </div>

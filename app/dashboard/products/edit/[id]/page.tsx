@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
-import { ArrowLeft, Save, Upload, ImageIcon } from "lucide-react";
+import { ArrowLeft, Save, Upload, ImageIcon, X } from "lucide-react";
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -47,6 +47,13 @@ export default function EditProductPage() {
   const [specTitle, setSpecTitle] = useState("");
   const [specDesc, setSpecDesc] = useState("");
 
+  // خصائص المنتج (عنوان الخاصية وقائمة الخيارات)
+  const [properties, setProperties] = useState<
+    { title: string; options: string[] }[]
+  >([]);
+  const [propertyTitle, setPropertyTitle] = useState("");
+  const [propertyOptions, setPropertyOptions] = useState<string[]>([""]);
+
   useEffect(() => {
     fetchProduct();
     fetchCategories();
@@ -74,6 +81,7 @@ export default function EditProductPage() {
       setShopId(data.shop_id || "");
       setImages(data.images || []);
       setSpecifications(data.specifications || []);
+      setProperties(data.properties || []);
     } catch (err: any) {
       setError(err.message || "Unknown error");
     } finally {
@@ -136,6 +144,34 @@ export default function EditProductPage() {
     setSpecifications(specifications.filter((_, i) => i !== index));
   };
 
+  const addProperty = () => {
+    if (propertyTitle.trim() && propertyOptions.some((opt) => opt.trim())) {
+      setProperties([
+        ...properties,
+        {
+          title: propertyTitle.trim(),
+          options: propertyOptions.map((opt) => opt.trim()).filter(Boolean),
+        },
+      ]);
+      setPropertyTitle("");
+      setPropertyOptions([""]);
+    }
+  };
+  const removeProperty = (index: number) => {
+    setProperties(properties.filter((_, i) => i !== index));
+  };
+  const handleOptionChange = (idx: number, value: string) => {
+    setPropertyOptions((options) =>
+      options.map((opt, i) => (i === idx ? value : opt))
+    );
+  };
+  const addOptionField = () => {
+    setPropertyOptions((options) => [...options, ""]);
+  };
+  const removeOptionField = (idx: number) => {
+    setPropertyOptions((options) => options.filter((_, i) => i !== idx));
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -159,6 +195,7 @@ export default function EditProductPage() {
         shop_id: shopId,
         images: finalImages,
         specifications: specifications.length > 0 ? specifications : null,
+        properties: properties.length > 0 ? properties : null,
       };
       const { error } = await supabase
         .from("products")
@@ -402,6 +439,95 @@ export default function EditProductPage() {
                               d="M6 18L18 6M6 6l12 12"
                             />
                           </svg>
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Product Properties</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="propertyTitle">Property Title</Label>
+                  <Input
+                    id="propertyTitle"
+                    value={propertyTitle}
+                    onChange={(e) => setPropertyTitle(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="propertyOptions">Property Options</Label>
+                  {propertyOptions.map((opt, idx) => (
+                    <div key={idx} className="flex space-x-2 items-center">
+                      <Input
+                        value={opt}
+                        onChange={(e) =>
+                          handleOptionChange(idx, e.target.value)
+                        }
+                        placeholder={`Option ${idx + 1}`}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeOptionField(idx)}
+                        disabled={propertyOptions.length === 1}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex justify-end space-x-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={addOptionField}
+                    >
+                      Add Option
+                    </Button>
+                    <Button
+                      onClick={addProperty}
+                      disabled={
+                        !propertyTitle.trim() ||
+                        !propertyOptions.some((opt) => opt.trim())
+                      }
+                    >
+                      Add Property
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              {properties.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-lg font-semibold">Current Properties</h3>
+                  <div className="mt-2 space-y-2">
+                    {properties.map((prop, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex-1">
+                          <p className="font-semibold">{prop.title}</p>
+                          <ul className="text-sm text-gray-600 list-disc ml-4">
+                            {prop.options.map((opt, i) => (
+                              <li key={i}>{opt}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => removeProperty(index)}
+                        >
+                          <X className="w-4 h-4" />
                         </Button>
                       </div>
                     ))}
