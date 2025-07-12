@@ -125,13 +125,20 @@ export default function AddShopPage() {
         .select("full_name")
         .eq("id", userId)
         .single();
-      if (!error && data?.full_name) {
-        setOwnerName(data.full_name);
+
+      if (error) {
+        console.error("Error fetching owner name:", error.message);
+        setOwnerName("");
+        return;
       }
+
+      setOwnerName(data?.full_name || "Unknown");
     } catch (error) {
+      console.error("Unexpected error:", error);
       setOwnerName("");
     }
   };
+
 
   const uploadImage = async (
     file: File,
