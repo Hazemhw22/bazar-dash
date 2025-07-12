@@ -305,3 +305,37 @@ export type CategoryInsert =
   Database["public"]["Tables"]["categories"]["Insert"];
 export type CategoryUpdate =
   Database["public"]["Tables"]["categories"]["Update"];
+
+// Additional commonly used types
+export type ProfileInsert = Database["public"]["Tables"]["profiles"]["Insert"];
+export type ProfileUpdate = Database["public"]["Tables"]["profiles"]["Update"];
+export type OrderInsert = Database["public"]["Tables"]["orders"]["Insert"];
+export type OrderUpdate = Database["public"]["Tables"]["orders"]["Update"];
+export type NotificationInsert = Database["public"]["Tables"]["notifications"]["Insert"];
+export type NotificationUpdate = Database["public"]["Tables"]["notifications"]["Update"];
+
+// Utility types for better type safety
+export type WithId<T> = T & { id: string };
+export type WithoutId<T> = Omit<T, "id">;
+export type WithTimestamps<T> = T & { created_at: string; updated_at: string };
+export type WithoutTimestamps<T> = Omit<T, "created_at" | "updated_at">;
+
+// Role-based utility types
+export type AdminUser = Profile & { role: UserRole.ADMIN };
+export type VendorUser = Profile & { role: UserRole.VENDOR };
+export type CustomerUser = Profile & { role: UserRole.CUSTOMER };
+export type StaffUser = Profile & { role: UserRole.STAFF };
+
+// Constants for common values
+export const DEFAULT_DELIVERY_TIME = {
+  FROM: 30, // minutes
+  TO: 60,   // minutes
+} as const;
+
+export const DEFAULT_TIMEZONE = "UTC" as const;
+
+export const FILE_SIZE_LIMITS = {
+  AVATAR: 2 * 1024 * 1024, // 2MB
+  PRODUCT_IMAGE: 5 * 1024 * 1024, // 5MB
+  SHOP_LOGO: 1 * 1024 * 1024, // 1MB
+} as const;

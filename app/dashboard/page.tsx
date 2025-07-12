@@ -14,17 +14,21 @@ import {
   TrendingUp,
   AlertCircle,
   Eye,
+  Layers,
 } from "lucide-react";
 import Link from "next/link";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
+import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 
 interface DashboardStats {
-  totalUsers: number;
-  totalShops: number;
   totalProducts: number;
   totalOrders: number;
   totalRevenue: number;
   pendingOrders: number;
-  activeShops: number;
+  completedOrders: number;
+  totalStores: number;
+  totalCategories: number;
   recentOrders: Array<{
     id: string;
     customer_name: string;
@@ -36,21 +40,181 @@ interface DashboardStats {
     id: string;
     name: string;
     price: number;
-    shop_name: string;
     created_at: string;
   }>;
+  storeInfo: {
+    name: string;
+    description: string | null;
+    logo_url: string | null;
+    background_image_url: string | null;
+    is_active: boolean;
+  } | null;
+}
+
+interface ChartData {
+  pieData: Array<{ name: string; value: number }>;
+  salesData: Array<{ month: string; products: number }>;
+  revenueData: Array<{ month: string; stores: number }>;
 }
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [chartData, setChartData] = useState<ChartData>({
+    pieData: [],
+    salesData: [],
+    revenueData: []
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
+  const [userRole, setUserRole] = useState<string>("customer");
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+
+  const chartConfig = {
+    products: {
+      label: "Products",
+      color: "#8884d8",
+    },
+    stores: {
+      label: "Stores", 
+      color: "#82ca9d",
+    },
+    value: {
+      label: "Value",
+      color: "#8884d8",
+    },
+    month: {
+      label: "Month",
+      color: "#82ca9d",
+    },
+  };
 
   useEffect(() => {
     fetchDashboardStats();
+    fetchChartData();
     fetchUserName();
+    fetchUserRole();
   }, []);
+
+  const fetchChartData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      const role = profile?.role || "customer";
+
+      if (role === "admin") {
+        // Fetch data for admin charts
+        const [productsData, categoriesData, shopsData] = await Promise.all([
+          supabase.from("products").select("category_id, created_at"),
+          supabase.from("categories").select("id, name"),
+          supabase.from("shops").select("created_at")
+        ]);
+
+        // Prepare pie chart data (products by category)
+        const categoryMap = new Map();
+        categoriesData.data?.forEach(cat => categoryMap.set(cat.id, cat.name));
+        
+        const categoryCounts = new Map();
+        productsData.data?.forEach(product => {
+          const categoryName = categoryMap.get(product.category_id) || "Unknown";
+          categoryCounts.set(categoryName, (categoryCounts.get(categoryName) || 0) + 1);
+        });
+
+        const pieData = Array.from(categoryCounts.entries()).map(([name, value]) => ({
+          name,
+          value: value as number
+        }));
+
+        // Prepare sales chart data (product additions over time)
+        const productMonths = new Map();
+        productsData.data?.forEach(product => {
+          const month = new Date(product.created_at).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+          productMonths.set(month, (productMonths.get(month) || 0) + 1);
+        });
+
+        const salesData = Array.from(productMonths.entries()).map(([month, products]) => ({
+          month,
+          products: products as number
+        })).sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+
+        // Prepare revenue chart data (store additions over time)
+        const storeMonths = new Map();
+        shopsData.data?.forEach(shop => {
+          const month = new Date(shop.created_at).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+          storeMonths.set(month, (storeMonths.get(month) || 0) + 1);
+        });
+
+        const revenueData = Array.from(storeMonths.entries()).map(([month, stores]) => ({
+          month,
+          stores: stores as number
+        })).sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+
+        setChartData({ pieData, salesData, revenueData });
+      } else if (role === "vendor") {
+        // Fetch data for vendor charts (store-specific)
+        const { data: storeData } = await supabase
+          .from("shops")
+          .select("id")
+          .eq("owner_id", user.id)
+          .single();
+
+        if (storeData) {
+          const [productsData, categoriesData] = await Promise.all([
+            supabase.from("products").select("category_id, created_at").eq("shop_id", storeData.id),
+            supabase.from("categories").select("id, name")
+          ]);
+
+          // Prepare pie chart data for vendor's store
+          const categoryMap = new Map();
+          categoriesData.data?.forEach(cat => categoryMap.set(cat.id, cat.name));
+          
+          const categoryCounts = new Map();
+          productsData.data?.forEach(product => {
+            const categoryName = categoryMap.get(product.category_id) || "Unknown";
+            categoryCounts.set(categoryName, (categoryCounts.get(categoryName) || 0) + 1);
+          });
+
+          const pieData = Array.from(categoryCounts.entries()).map(([name, value]) => ({
+            name,
+            value: value as number
+          }));
+
+          // Prepare sales chart data for vendor's store
+          const productMonths = new Map();
+          productsData.data?.forEach(product => {
+            const month = new Date(product.created_at).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
+            productMonths.set(month, (productMonths.get(month) || 0) + 1);
+          });
+
+          const salesData = Array.from(productMonths.entries()).map(([month, products]) => ({
+            month,
+            products: products as number
+          })).sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+
+          // For vendor, revenue trend shows their store's product additions over time
+          const revenueData = Array.from(productMonths.entries()).map(([month, products]) => ({
+            month,
+            stores: products as number
+          })).sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
+
+          setChartData({ pieData, salesData, revenueData });
+        }
+      } else {
+        // Customer - no chart data
+        setChartData({ pieData: [], salesData: [], revenueData: [] });
+      }
+    } catch (error) {
+      console.error("Error fetching chart data:", error);
+    }
+  };
 
   const fetchDashboardStats = async () => {
     try {
@@ -58,13 +222,158 @@ export default function DashboardPage() {
       setLoading(true);
       console.log("Fetching dashboard stats...");
 
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError("User not authenticated");
+        return;
+      }
+
+      // Get user's role
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+
+      const role = profile?.role || "customer";
+
+      // Handle different roles
+      if (role === "vendor") {
+        // Vendor (store owner) - store-specific data
+        const { data: storeData } = await supabase
+          .from("shops")
+          .select("*")
+          .eq("owner_id", user.id)
+          .single();
+
+        if (!storeData) {
+          setError("No store found for this user");
+          return;
+        }
+
+        // Get store-specific counts
+        const [productsResult] = await Promise.all([
+          supabase
+            .from("products")
+            .select("*", { count: "exact", head: true })
+            .eq("shop_id", storeData.id),
+        ]);
+
+        // Get orders that contain products from this store
+        const { data: storeProducts } = await supabase
+          .from("products")
+          .select("id")
+          .eq("shop_id", storeData.id);
+
+        const storeProductIds = storeProducts?.map(p => p.id) || [];
+
+        // Get orders and order items for this store's products
+        const { data: orderItemsData } = await supabase
+          .from("order_items")
+          .select(`
+            order_id,
+            total_price,
+            orders (
+              id,
+              total_amount,
+              status,
+              payment_status,
+              created_at,
+              profiles!orders_customer_id_fkey (
+                full_name,
+                email
+              )
+            )
+          `)
+          .in("product_id", storeProductIds);
+
+        // Calculate store-specific stats
+        const uniqueOrders = new Map();
+        const pendingOrders = new Set();
+        const completedOrders = new Set();
+        let totalRevenue = 0;
+
+        orderItemsData?.forEach((item: any) => {
+          const order = item.orders;
+          if (order && !uniqueOrders.has(order.id)) {
+            uniqueOrders.set(order.id, order);
+            
+            if (order.status === "pending") {
+              pendingOrders.add(order.id);
+            } else if (order.status === "delivered") {
+              completedOrders.add(order.id);
+            }
+            
+            if (order.payment_status === "paid") {
+              totalRevenue += order.total_amount;
+            }
+          }
+        });
+
+        const totalOrders = uniqueOrders.size;
+        const pendingOrdersCount = pendingOrders.size;
+        const completedOrdersCount = completedOrders.size;
+
+        // Get recent orders for this store
+        const recentOrders = Array.from(uniqueOrders.values())
+          .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 5)
+          .map((order: any) => ({
+            id: order.id,
+            customer_name: (order.profiles?.[0]?.full_name || order.profiles?.[0]?.email) ?? "Unknown Customer",
+            total_amount: order.total_amount,
+            status: order.status,
+            created_at: order.created_at,
+          }));
+
+        // Get recent products for this store
+        const { data: recentProductsData } = await supabase
+          .from("products")
+          .select("id, name, price, created_at")
+          .eq("shop_id", storeData.id)
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        const recentProducts =
+          recentProductsData?.map((product) => ({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            created_at: product.created_at,
+          })) || [];
+
+        const dashboardStats: DashboardStats = {
+          totalProducts: productsResult.count || 0,
+          totalOrders,
+          totalRevenue,
+          pendingOrders: pendingOrdersCount,
+          completedOrders: completedOrdersCount,
+          totalStores: 0, // Not relevant for vendor
+          totalCategories: 0, // Not relevant for vendor
+          recentOrders,
+          recentProducts,
+          storeInfo: {
+            name: storeData.name,
+            description: storeData.description,
+            logo_url: storeData.logo_url,
+            background_image_url: storeData.background_image_url,
+            is_active: storeData.is_active,
+          },
+        };
+
+        setStats(dashboardStats);
+        console.log("Dashboard stats:", dashboardStats);
+      } else if (role === "admin") {
+        // Admin - global data
       // Get basic counts
-      const [usersResult, shopsResult, productsResult, ordersResult] =
+      const [usersResult, shopsResult, productsResult, ordersResult, categoriesResult] =
         await Promise.all([
           supabase.from("profiles").select("*", { count: "exact", head: true }),
           supabase.from("shops").select("*", { count: "exact", head: true }),
           supabase.from("products").select("*", { count: "exact", head: true }),
           supabase.from("orders").select("*", { count: "exact", head: true }),
+          supabase.from("categories").select("*", { count: "exact", head: true }),
         ]);
 
       // Get additional stats
@@ -134,39 +443,47 @@ export default function DashboardPage() {
         .order("created_at", { ascending: false })
         .limit(5);
 
-      type RecentProduct = {
-        id: string;
-        name: string;
-        price: number;
-        created_at: string;
-        shops: { name: string } | { name: string }[] | null;
-      };
-
       const recentProducts =
-        (recentProductsData as RecentProduct[] | undefined)?.map((product) => ({
+          recentProductsData?.map((product) => ({
           id: product.id,
           name: product.name,
           price: product.price,
-          shop_name: Array.isArray(product.shops)
-            ? product.shops[0]?.name || "Unknown Shop"
-            : product.shops?.name || "Unknown Shop",
           created_at: product.created_at,
         })) || [];
 
       const dashboardStats: DashboardStats = {
-        totalUsers: usersResult.count || 0,
-        totalShops: shopsResult.count || 0,
         totalProducts: productsResult.count || 0,
         totalOrders: ordersResult.count || 0,
         totalRevenue,
         pendingOrders: pendingOrdersResult.count || 0,
-        activeShops: activeShopsResult.count || 0,
+        completedOrders: 0, // Would need to calculate this
+        totalStores: shopsResult.count || 0,
+        totalCategories: categoriesResult.count || 0,
         recentOrders,
         recentProducts,
+        storeInfo: null, // No store info for admin
+      };
+
+        setStats(dashboardStats);
+        console.log("Dashboard stats:", dashboardStats);
+      } else {
+        // Customer - limited data
+        const dashboardStats: DashboardStats = {
+          totalProducts: 0,
+          totalOrders: 0,
+          totalRevenue: 0,
+          pendingOrders: 0,
+          completedOrders: 0,
+          totalStores: 0,
+          totalCategories: 0,
+          recentOrders: [],
+          recentProducts: [],
+          storeInfo: null,
       };
 
       setStats(dashboardStats);
       console.log("Dashboard stats:", dashboardStats);
+      }
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
       setError(
@@ -186,6 +503,18 @@ export default function DashboardPage() {
         .eq("id", user.id)
         .single();
       setUserName(profile?.full_name || "");
+    }
+  };
+
+  const fetchUserRole = async () => {
+    const { data: { user } = {} } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      setUserRole(profile?.role || "customer");
     }
   };
 
@@ -236,12 +565,12 @@ export default function DashboardPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-600">Welcome </p>
+            <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+            <p className="text-muted-foreground">Welcome </p>
           </div>
         </div>
 
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-destructive/10 border border-destructive rounded-lg p-4">
           <div className="flex">
             <AlertCircle className="h-5 w-5 text-red-400" />
             <div className="ml-3">
@@ -270,290 +599,243 @@ export default function DashboardPage() {
   if (!stats) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">No dashboard data available</p>
+        <p className="text-muted-foreground">No dashboard data available</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-8  min-h-screen">
+      {/* Header + Time Range Tabs */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">
-            Welcome {userName && <span className="font-bold">{userName}</span>}
+          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground text-base">
+            Overview and analytics
           </p>
         </div>
-        <Button onClick={fetchDashboardStats} variant="outline">
-          Refresh Data
-        </Button>
+        <Tabs defaultValue="month" className="w-fit">
+          <TabsList>
+            <TabsTrigger value="week">This Week</TabsTrigger>
+            <TabsTrigger value="month">This Month</TabsTrigger>
+            <TabsTrigger value="year">This Year</TabsTrigger>
+            <TabsTrigger value="all">All Time</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
-
-      {/* Stats Overview */}
+      {/* Stats Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+        <Card className="bg-card text-foreground">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <DollarSign className="h-5 w-5 text-green-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {formatNumber(stats.totalUsers)}
+            <div className="text-3xl font-bold text-green-400">
+              {formatCurrency(stats.totalRevenue)}
             </div>
-            <p className="text-xs text-muted-foreground">Registered users</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Shops</CardTitle>
-            <Store className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatNumber(stats.activeShops)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              of {stats.totalShops} total shops (
-              {stats.totalShops > 0
-                ? Math.round((stats.activeShops / stats.totalShops) * 100)
-                : 0}
-              %)
+            <p className="text-xs text-muted-foreground mt-1">
+              +{formatCurrency(stats.totalRevenue)} This Month
             </p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <Card className="bg-card text-foreground">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Total Stores</CardTitle>
+            <Store className="h-5 w-5 text-blue-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-blue-400">
+              {formatNumber(stats.totalStores)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Total Inventory
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-card text-foreground">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">
+              Total Categories
+            </CardTitle>
+            <Layers className="h-5 w-5 text-purple-400" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-purple-400">
+              {formatNumber(stats.totalCategories)}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Product Categories
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-card text-foreground">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
               Total Products
             </CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <Package className="h-5 w-5 text-pink-400" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-3xl font-bold text-pink-400">
               {formatNumber(stats.totalProducts)}
             </div>
-            <p className="text-xs text-muted-foreground">Products listed</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(stats.totalRevenue)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              From {stats.totalOrders} orders
+            <p className="text-xs text-muted-foreground mt-1">
+              Products in store
             </p>
           </CardContent>
         </Card>
       </div>
-
-      {/* Additional Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatNumber(stats.totalOrders)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {stats.pendingOrders} pending orders
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Average Order Value
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(
-                stats.totalOrders > 0
-                  ? stats.totalRevenue / stats.totalOrders
-                  : 0
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">Per order</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pending Orders
-            </CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {formatNumber(stats.pendingOrders)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {stats.totalOrders > 0
-                ? Math.round((stats.pendingOrders / stats.totalOrders) * 100)
-                : 0}
-              % of total
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
+      {/* Grouped Cards: Categories by Type, Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Orders</CardTitle>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/dashboard/orders">
-                <Eye className="w-4 h-4 mr-2" />
-                View All
-              </Link>
-            </Button>
+        <Card className="bg-card text-foreground">
+          <CardHeader>
+            <CardTitle>Categories by Type</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {stats.recentOrders.length > 0 ? (
-                stats.recentOrders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
+            {chartData.pieData.length > 0 ? (
+              <ChartContainer config={chartConfig}>
+                <PieChart>
+                  <Pie
+                    data={chartData.pieData}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) =>
+                      `${name} ${(percent * 100).toFixed(0)}%`
+                    }
                   >
-                    <div>
-                      <p className="font-medium">#{order.id.slice(0, 8)}</p>
-                      <p className="text-sm text-gray-500">
-                        {order.customer_name}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {formatDate(order.created_at)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold">
-                        {formatCurrency(order.total_amount)}
-                      </p>
-                      {getStatusBadge(order.status)}
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <ShoppingCart className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <p>No recent orders</p>
-                </div>
-              )}
-            </div>
+                    {chartData.pieData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <ChartTooltip />
+                </PieChart>
+              </ChartContainer>
+            ) : (
+              <div className="h-64 flex items-center justify-center">
+                <span className="text-muted-foreground">No data available</span>
+              </div>
+            )}
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Products</CardTitle>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/dashboard/products">
-                <Eye className="w-4 h-4 mr-2" />
-                View All
-              </Link>
-            </Button>
+        <Card className="bg-card text-foreground">
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {stats.recentProducts.length > 0 ? (
-                stats.recentProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium">{product.name}</p>
-                      <p className="text-sm text-gray-500">
-                        {product.shop_name}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {formatDate(product.created_at)}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold">
-                        {formatCurrency(product.price)}
-                      </p>
-                      <Badge variant="outline">New</Badge>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Package className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                  <p>No recent products</p>
-                </div>
-              )}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-4">
+              <Button
+                className="h-20 flex flex-col items-center justify-center"
+                asChild
+              >
+                <Link href="/dashboard/products/add">
+                  <Package className="w-6 h-6 mb-2" />
+                  Add Product
+                </Link>
+              </Button>
+              <Button
+                className="h-20 flex flex-col items-center justify-center"
+                asChild
+              >
+                <Link href="/dashboard/categories/add">
+                  <Layers className="w-6 h-6 mb-2" />
+                  Add Category
+                </Link>
+              </Button>
+              <Button
+                className="h-20 flex flex-col items-center justify-center"
+                asChild
+              >
+                <Link href="/dashboard/shops/add">
+                  <Store className="w-6 h-6 mb-2" />
+                  Add Store
+                </Link>
+              </Button>
+              <Button
+                className="h-20 flex flex-col items-center justify-center"
+                asChild
+              >
+                <Link href="/dashboard/orders">
+                  <ShoppingCart className="w-6 h-6 mb-2" />
+                  View Orders
+                </Link>
+              </Button>
+              <Button
+                className="h-20 flex flex-col items-center justify-center"
+                asChild
+              >
+                <Link href="/dashboard/analytics">
+                  <TrendingUp className="w-6 h-6 mb-2" />
+                  View Analytics
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button
-              className="h-20 flex flex-col items-center justify-center"
-              asChild
-            >
-              <Link href="/dashboard/products/add">
-                <Package className="w-6 h-6 mb-2" />
-                Add Product
-              </Link>
-            </Button>
-            <Button
-              className="h-20 flex flex-col items-center justify-center bg-transparent"
-              variant="outline"
-              asChild
-            >
-              <Link href="/dashboard/shops/add">
-                <Store className="w-6 h-6 mb-2" />
-                Add Shop
-              </Link>
-            </Button>
-            <Button
-              className="h-20 flex flex-col items-center justify-center bg-transparent"
-              variant="outline"
-              asChild
-            >
-              <Link href="/dashboard/categories/add">
-                <Package className="w-6 h-6 mb-2" />
-                Add Category
-              </Link>
-            </Button>
-            <Button
-              className="h-20 flex flex-col items-center justify-center bg-transparent"
-              variant="outline"
-              asChild
-            >
-              <Link href="/dashboard/analytics">
-                <TrendingUp className="w-6 h-6 mb-2" />
-                View Analytics
-              </Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Grouped Cards: Products Chart, Stores Chart*/}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="bg-card text-foreground">
+          <CardHeader>
+            <CardTitle>Products Chart</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {chartData.salesData.length > 0 ? (
+              <ChartContainer config={chartConfig}>
+                <LineChart data={chartData.salesData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Line
+                    type="monotone"
+                    dataKey="products"
+                    stroke="#8884d8"
+                    strokeWidth={2}
+                  />
+                  <ChartTooltip />
+                </LineChart>
+              </ChartContainer>
+            ) : (
+              <div className="h-64 flex items-center justify-center">
+                <span className="text-muted-foreground">No data available</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="bg-card text-foreground">
+          <CardHeader>
+            <CardTitle>Stores Chart</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {chartData.revenueData.length > 0 ? (
+              <ChartContainer config={chartConfig}>
+                <LineChart data={chartData.revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Line
+                    type="monotone"
+                    dataKey="stores"
+                    stroke="#82ca9d"
+                    strokeWidth={2}
+                  />
+                  <ChartTooltip />
+                </LineChart>
+              </ChartContainer>
+            ) : (
+              <div className="h-64 flex items-center justify-center">
+                <span className="text-muted-foreground">No data available</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

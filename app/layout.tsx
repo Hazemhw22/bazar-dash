@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { NotificationProvider } from "@/components/notifications/NotificationProvider";
 import NotificationToaster from "@/components/notifications/NotificationToaster";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
   title: 'bazar - dash',
@@ -10,12 +11,19 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <NotificationProvider>
-          {children}
-          <NotificationToaster />
-        </NotificationProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <NotificationProvider>
+            {children}
+            <NotificationToaster />
+          </NotificationProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

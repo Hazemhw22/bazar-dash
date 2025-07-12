@@ -20,6 +20,7 @@ export default function SignUp() {
   const [newsletter, setNewsletter] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [isAdmin, setIsAdmin] = useState(false)
   const router = useRouter()
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -40,23 +41,69 @@ export default function SignUp() {
 
       if (error) {
         setError(error.message)
-      } else {
+        return
+      }
+
         // Create profile
         if (data.user) {
-          const { error: profileError } = await supabase.from("profiles").insert({
+        console.log("🔍 Debug: isAdmin state =", isAdmin)
+        console.log("🔍 Debug: Checkbox value =", isAdmin)
+        
+        const selectedRole = isAdmin ? "admin" : "customer"
+        console.log("🔍 Debug: Selected role =", selectedRole)
+        
+        const profileData = {
             id: data.user.id,
-            full_name: name,
-            email: email,
-            role: "customer",
+          full_name: name.trim(),
+          email: email.trim(),
+          role: selectedRole,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }
+
+        console.log("Creating profile with data:", profileData)
+
+        // Try to create profile with upsert to handle existing profiles
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .upsert(profileData, {
+            onConflict: 'id',
+            ignoreDuplicates: false
           })
 
           if (profileError) {
             console.error("Profile creation error:", profileError)
-          }
-        }
+          console.error("Error details:", {
+            code: profileError.code,
+            message: profileError.message,
+            details: profileError.details,
+            hint: profileError.hint
+          })
+          
+          // Try alternative approach: update existing profile if it exists
+          console.log("Trying to update existing profile...")
+          const { error: updateError } = await supabase
+            .from("profiles")
+            .update({
+              full_name: name.trim(),
+              email: email.trim(),
+              role: selectedRole,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', data.user.id)
 
-        router.push("/auth/signin?message=Check your email to confirm your account")
+          if (updateError) {
+            console.error("Profile update error:", updateError)
+            console.warn("Profile creation/update failed, but user account was created successfully")
+          } else {
+            console.log("Profile updated successfully with role:", selectedRole)
+          }
+        } else {
+          console.log("Profile created successfully with role:", selectedRole)
+        }
       }
+
+      router.push("/auth/signin?message=Check your email to confirm your account")
     } catch (err) {
       setError("An unexpected error occurred")
     } finally {
@@ -159,6 +206,17 @@ export default function SignUp() {
                 </Label>
               </div>
 
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="admin"
+                  checked={isAdmin}
+                  onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
+                />
+                <Label htmlFor="admin" className="text-sm text-gray-600">
+                  Register as Administrator
+                </Label>
+              </div>
+
               {error && <div className="text-red-600 text-sm text-center">{error}</div>}
 
               <Button
@@ -174,6 +232,12 @@ export default function SignUp() {
               <span className="text-gray-600">Already have an account? </span>
               <Link href="/auth/signin" className="text-blue-600 hover:underline font-semibold">
                 SIGN IN
+              </Link>
+            </div>
+            <div className="text-center mt-2">
+              <span className="text-gray-600">Are you a store owner? </span>
+              <Link href="/auth/signup-store" className="text-pink-600 hover:underline font-semibold">
+                Register your store here
               </Link>
             </div>
           </div>

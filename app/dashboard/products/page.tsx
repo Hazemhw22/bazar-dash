@@ -34,7 +34,6 @@ import Link from "next/link";
 
 interface ProductWithDetails extends Product {
   category_name?: string;
-  shop_name?: string;
 }
 
 export default function ProductsPage() {
@@ -55,32 +54,76 @@ export default function ProductsPage() {
       setLoading(true);
       console.log("Fetching products...");
 
-      const { data, error } = await supabase
-        .from("products")
-        .select(
-          `
-          *,
-          categories(name),
-          shops(name)
-        `
-        )
-        .order("created_at", { ascending: false });
+      // Get current user and their role
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError("User not authenticated");
+        return;
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      const role = profile?.role || "customer";
 
-      if (error) {
-        console.error("Products query failed:", error);
-        throw error;
+      if (role === "admin") {
+        // Admin: fetch all products
+        const { data, error } = await supabase
+          .from("products")
+          .select(`*, categories(name)`)
+          .order("created_at", { ascending: false });
+        if (error) {
+          console.error("Products query failed:", error);
+          throw error;
+        }
+        const productsWithDetails =
+          data?.map((product) => ({
+            ...product,
+            category_name: product.categories?.name || "Uncategorized",
+          })) || [];
+        setProducts(productsWithDetails);
+        setLoading(false);
+        return;
       }
 
-      console.log("Products data:", data);
+      if (role === "vendor") {
+        // Vendor: current logic (store-specific)
+        // Get user's store
+        const { data: storeData } = await supabase
+          .from("shops")
+          .select("id")
+          .eq("owner_id", user.id)
+          .single();
+        if (!storeData) {
+          setError("No store found for this user");
+          setLoading(false);
+          return;
+        }
+        const { data, error } = await supabase
+          .from("products")
+          .select(`*, categories(name)`)
+          .eq("shop_id", storeData.id)
+          .order("created_at", { ascending: false });
+        if (error) {
+          console.error("Products query failed:", error);
+          throw error;
+        }
+        const productsWithDetails =
+          data?.map((product) => ({
+            ...product,
+            category_name: product.categories?.name || "Uncategorized",
+          })) || [];
+        setProducts(productsWithDetails);
+        setLoading(false);
+        return;
+      }
 
-      const productsWithDetails =
-        data?.map((product) => ({
-          ...product,
-          category_name: product.categories?.name || "Uncategorized",
-          shop_name: product.shops?.name || "Unknown Shop",
-        })) || [];
-
-      setProducts(productsWithDetails);
+      // Customer/other: show friendly message
+      setProducts([]);
+      setError("No products available for your account.");
+      setLoading(false);
+      return;
     } catch (error) {
       console.error("Error fetching products:", error);
       setError(
@@ -192,7 +235,7 @@ export default function ProductsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8"></div>
       </div>
     );
   }
@@ -202,12 +245,12 @@ export default function ProductsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-            <p className="text-gray-600">Manage your product inventory</p>
+            <h1 className="text-2xl font-bold text-foreground">Products</h1>
+            <p className="text-muted-foreground">Manage your product inventory</p>
           </div>
         </div>
 
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-destructive/10 border border-destructive rounded-lg p-4">
           <div className="flex">
             <AlertCircle className="h-5 w-5 text-red-400" />
             <div className="ml-3">
@@ -234,8 +277,8 @@ export default function ProductsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Products</h1>
-          <p className="text-gray-600">Manage your product inventory</p>
+          <h1 className="text-2xl font-bold text-foreground">Products</h1>
+          <p className="text-muted-foreground">Manage your product inventory</p>
         </div>
         <div className="flex items-center space-x-3">
           <Badge variant="secondary">{filteredProducts.length} products</Badge>
@@ -274,13 +317,12 @@ export default function ProductsPage() {
       </div>
 
       {/* Products Table */}
-      <div className="bg-white rounded-lg border">
+      <div className="bg-card rounded-lg border border-border">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Product</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead>Shop</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Stock</TableHead>
               <TableHead>Status</TableHead>
@@ -306,7 +348,7 @@ export default function ProductsPage() {
                     </div>
                     <div>
                       <div className="font-medium">{product.name}</div>
-                      <div className="text-sm text-gray-500 max-w-xs truncate">
+                      <div className="text-sm text-muted-foreground max-w-xs truncate">
                         {product.description}
                       </div>
                     </div>
@@ -315,7 +357,6 @@ export default function ProductsPage() {
                 <TableCell>
                   <Badge variant="outline">{product.category_name}</Badge>
                 </TableCell>
-                <TableCell>{product.shop_name}</TableCell>
                 <TableCell>
                   <div>
                     <div className="font-semibold">
@@ -382,10 +423,10 @@ export default function ProductsPage() {
         {filteredProducts.length === 0 && (
           <div className="text-center py-12">
             <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-foreground mb-2">
               No products found
             </h3>
-            <p className="text-gray-500">
+            <p className="text-muted-foreground">
               {searchQuery || categoryFilter !== "all" || statusFilter !== "all"
                 ? "Try adjusting your search or filter criteria"
                 : "Products will appear here when you add them"}
@@ -395,9 +436,9 @@ export default function ProductsPage() {
 
         {/* Pagination */}
         {filteredProducts.length > 0 && (
-          <div className="flex items-center justify-between p-4 border-t">
+          <div className="flex items-center justify-between p-4 border-t border-border">
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-muted-foreground">
                 Showing {filteredProducts.length} of {products.length} products
               </span>
             </div>

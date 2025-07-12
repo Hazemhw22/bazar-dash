@@ -52,60 +52,144 @@ export default function OrdersPage() {
       setLoading(true);
       console.log("Fetching orders...");
 
-      const { data: ordersData, error: ordersError } = await supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (ordersError) {
-        console.error("Orders error:", ordersError);
-        throw ordersError;
+      // Get current user and their role
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError("User not authenticated");
+        return;
       }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      const role = profile?.role || "customer";
 
-      if (!ordersData) {
-        setOrders([]);
+      if (role === "admin") {
+        // Admin: fetch all orders
+        const { data: ordersData, error: ordersError } = await supabase
+          .from("orders")
+          .select(`*, profiles!orders_customer_id_fkey(full_name, email)`)
+          .order("created_at", { ascending: false });
+        if (ordersError) {
+          console.error("Orders query failed:", ordersError);
+          throw ordersError;
+        }
+        const ordersWithDetails = ordersData?.map((order) => ({
+          ...order,
+          customer_name:
+            (order.profiles?.[0]?.full_name || order.profiles?.[0]?.email) ??
+            "Unknown Customer",
+          items_count: order.items_count || 0,
+        })) || [];
+        setOrders(ordersWithDetails);
+        setLoading(false);
         return;
       }
 
-      // Get order items count and customer name for each order
-      const ordersWithDetails = await Promise.all(
-        ordersData.map(async (order) => {
-          try {
-            // Get items count
-            const { count } = await supabase
-              .from("order_items")
-              .select("*", { count: "exact", head: true })
-              .eq("order_id", order.id);
-
-            // Get customer name/email
-            let customer_name = "Unknown Customer";
-            if (order.customer_id) {
-              const { data: profile } = await supabase
-                .from("profiles")
-                .select("full_name, email")
-                .eq("id", order.customer_id)
-                .single();
-              customer_name =
-                profile?.full_name || profile?.email || "Unknown Customer";
-            }
-
-            return {
-              ...order,
-              customer_name,
-              items_count: count || 0,
-            };
-          } catch (error) {
-            console.error(`Error processing order ${order.id}:`, error);
-            return {
-              ...order,
-              customer_name: "Unknown Customer",
-              items_count: 0,
-            };
+      if (role === "vendor") {
+        // Vendor: current logic (store-specific)
+        // Get user's store
+        const { data: storeData } = await supabase
+          .from("shops")
+          .select("id")
+          .eq("owner_id", user.id)
+          .single();
+        if (!storeData) {
+          setError("No store found for this user");
+          setLoading(false);
+          return;
+        }
+        // Get products from this store
+        const { data: storeProducts } = await supabase
+          .from("products")
+          .select("id")
+          .eq("shop_id", storeData.id);
+        const storeProductIds = storeProducts?.map((p) => p.id) || [];
+        if (storeProductIds.length === 0) {
+          setOrders([]);
+          setLoading(false);
+          return;
+        }
+        // Get order items for this store's products
+        const { data: orderItemsData, error: orderItemsError } = await supabase
+          .from("order_items")
+          .select(`
+            order_id,
+            orders (
+              id,
+              customer_id,
+              status,
+              total_amount,
+              payment_status,
+              created_at,
+              updated_at,
+              tracking_number,
+              notes,
+              profiles!orders_customer_id_fkey(full_name, email)
+            )
+          `)
+          .in("product_id", storeProductIds);
+        if (orderItemsError) {
+          console.error("Order items error:", orderItemsError);
+          throw orderItemsError;
+        }
+        // Get unique orders and their details
+        const uniqueOrders = new Map();
+        orderItemsData.forEach((item: any) => {
+          const order = item.orders;
+          if (order && !uniqueOrders.has(order.id)) {
+            uniqueOrders.set(order.id, order);
           }
-        })
-      );
+        });
+        const ordersWithDetails = await Promise.all(
+          Array.from(uniqueOrders.values()).map(async (order: any) => {
+            try {
+              // Get items count for this store's products in this order
+              const { count } = await supabase
+                .from("order_items")
+                .select("*", { count: "exact", head: true })
+                .eq("order_id", order.id)
+                .in("product_id", storeProductIds);
+              // Get customer name/email
+              let customer_name = "Unknown Customer";
+              if (order.customer_id) {
+                const { data: profile } = await supabase
+                  .from("profiles")
+                  .select("full_name, email")
+                  .eq("id", order.customer_id)
+                  .single();
+                customer_name =
+                  profile?.full_name || profile?.email || "Unknown Customer";
+              }
+              return {
+                ...order,
+                customer_name,
+                items_count: count || 0,
+              };
+            } catch (error) {
+              console.error(`Error processing order ${order.id}:`, error);
+              return {
+                ...order,
+                customer_name: "Unknown Customer",
+                items_count: 0,
+              };
+            }
+          })
+        );
+        ordersWithDetails.sort((a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        setOrders(ordersWithDetails);
+        setLoading(false);
+        return;
+      }
 
-      setOrders(ordersWithDetails);
+      // Customer/other: show friendly message
+      setOrders([]);
+      setError("No orders available for your account.");
+      setLoading(false);
+      return;
     } catch (error) {
       console.error("Error fetching orders:", error);
       setError(
@@ -222,7 +306,7 @@ export default function OrdersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8"></div>
       </div>
     );
   }
@@ -232,12 +316,12 @@ export default function OrdersPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-            <p className="text-gray-600">Manage customer orders</p>
+            <h1 className="text-2xl font-bold text-foreground">Orders</h1>
+            <p className="text-muted-foreground">Manage your orders</p>
           </div>
         </div>
 
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-destructive/10 border border-destructive rounded-lg p-4">
           <div className="flex">
             <AlertCircle className="h-5 w-5 text-red-400" />
             <div className="ml-3">
@@ -264,8 +348,8 @@ export default function OrdersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Orders</h1>
-          <p className="text-gray-600">Manage customer orders</p>
+          <h1 className="text-2xl font-bold text-foreground">Orders</h1>
+          <p className="text-muted-foreground">Manage your orders</p>
         </div>
         <div className="flex items-center space-x-3">
           <Badge variant="secondary">{filteredOrders.length} orders</Badge>
@@ -303,7 +387,7 @@ export default function OrdersPage() {
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white rounded-lg border">
+      <div className="bg-background rounded-lg border border-border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -324,7 +408,7 @@ export default function OrdersPage() {
                   <div>
                     <div className="font-medium">#{order.id.slice(0, 8)}</div>
                     {order.tracking_number && (
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-muted-foreground">
                         Track: {order.tracking_number}
                       </div>
                     )}
@@ -333,7 +417,7 @@ export default function OrdersPage() {
                 <TableCell>
                   <div>
                     <div className="font-medium">{order.customer_name}</div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-muted-foreground">
                       {order.shipping_address.full_name}
                     </div>
                   </div>
@@ -412,10 +496,10 @@ export default function OrdersPage() {
         {filteredOrders.length === 0 && (
           <div className="text-center py-12">
             <ShoppingCart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-foreground mb-2">
               No orders found
             </h3>
-            <p className="text-gray-500">
+            <p className="text-muted-foreground">
               {searchQuery || statusFilter !== "all"
                 ? "Try adjusting your search or filter criteria"
                 : "Orders will appear here when customers place them"}
@@ -425,9 +509,9 @@ export default function OrdersPage() {
 
         {/* Pagination */}
         {filteredOrders.length > 0 && (
-          <div className="flex items-center justify-between p-4 border-t">
+          <div className="flex items-center justify-between p-4 border-t border-border">
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-muted-foreground">
                 Showing {filteredOrders.length} of {orders.length} orders
               </span>
             </div>

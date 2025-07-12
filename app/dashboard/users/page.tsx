@@ -126,7 +126,7 @@ export default function UsersPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8"></div>
       </div>
     );
   }
@@ -136,12 +136,12 @@ export default function UsersPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-            <p className="text-gray-600">Manage your platform users</p>
+            <h1 className="text-2xl font-bold text-foreground">Users</h1>
+            <p className="text-muted-foreground">Manage your platform users</p>
           </div>
         </div>
 
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-destructive/10 border border-destructive rounded-lg p-4">
           <div className="flex">
             <AlertCircle className="h-5 w-5 text-red-400" />
             <div className="ml-3">
@@ -168,8 +168,8 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Users</h1>
-          <p className="text-gray-600">Manage your platform users</p>
+          <h1 className="text-2xl font-bold text-foreground">Users</h1>
+          <p className="text-muted-foreground">Manage your platform users</p>
         </div>
         <div className="flex items-center space-x-3">
           <Badge variant="secondary">{filteredUsers.length} users</Badge>
@@ -206,7 +206,7 @@ export default function UsersPage() {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-lg border">
+      <div className="bg-background rounded-lg border border-border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -242,7 +242,9 @@ export default function UsersPage() {
                       <div className="font-medium">
                         {user.full_name || "No name"}
                       </div>
-                      <div className="text-sm text-gray-500">{user.email}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {user.email}
+                      </div>
                     </div>
                   </div>
                 </TableCell>
@@ -282,10 +284,10 @@ export default function UsersPage() {
         {filteredUsers.length === 0 && (
           <div className="text-center py-12">
             <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-foreground mb-2">
               No users found
             </h3>
-            <p className="text-gray-500">
+            <p className="text-muted-foreground">
               {searchQuery
                 ? "Try adjusting your search criteria"
                 : "Users will appear here when they register"}
@@ -295,9 +297,9 @@ export default function UsersPage() {
 
         {/* Pagination */}
         {filteredUsers.length > 0 && (
-          <div className="flex items-center justify-between p-4 border-t">
+          <div className="flex items-center justify-between p-4 border-t border-border">
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-muted-foreground">
                 Showing {filteredUsers.length} of {users.length} users
               </span>
             </div>

@@ -171,7 +171,7 @@ export default function CategoriesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8"></div>
       </div>
     );
   }
@@ -181,12 +181,12 @@ export default function CategoriesPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
-            <p className="text-gray-600">Manage your product categories</p>
+            <h1 className="text-2xl font-bold text-foreground">Categories</h1>
+            <p className="text-muted-foreground">Manage your product categories</p>
           </div>
         </div>
 
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-destructive/10 border border-destructive rounded-lg p-4">
           <div className="flex">
             <AlertCircle className="h-5 w-5 text-red-400" />
             <div className="ml-3">
@@ -213,8 +213,8 @@ export default function CategoriesPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Categories</h1>
-          <p className="text-gray-600">Manage your product categories</p>
+          <h1 className="text-2xl font-bold text-foreground">Categories</h1>
+          <p className="text-muted-foreground">Manage your product categories</p>
         </div>
         <div className="flex items-center space-x-3">
           <Badge variant="secondary">
@@ -255,7 +255,7 @@ export default function CategoriesPage() {
       </div>
 
       {/* Categories Table */}
-      <div className="bg-white rounded-lg border">
+      <div className="bg-card rounded-lg border border-border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -331,10 +331,10 @@ export default function CategoriesPage() {
         {filteredCategories.length === 0 && (
           <div className="text-center py-12">
             <Layers className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-foreground mb-2">
               No categories found
             </h3>
-            <p className="text-gray-500">
+            <p className="text-muted-foreground">
               {searchQuery || typeFilter !== "all"
                 ? "Try adjusting your search or filter criteria"
                 : "Categories will appear here when you create them"}
@@ -344,9 +344,9 @@ export default function CategoriesPage() {
 
         {/* Pagination */}
         {filteredCategories.length > 0 && (
-          <div className="flex items-center justify-between p-4 border-t">
+          <div className="flex items-center justify-between p-4 border-t border-border">
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-muted-foreground">
                 Showing {filteredCategories.length} of {categories.length}{" "}
                 categories
               </span>

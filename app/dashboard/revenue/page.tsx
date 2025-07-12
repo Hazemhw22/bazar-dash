@@ -44,19 +44,200 @@ export default function RevenuePage() {
       setLoading(true)
       console.log("Fetching revenue data...")
 
-      // Get all orders with payment status 'paid'
-      const { data: ordersData, error: ordersError } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("payment_status", "paid")
-        .order("created_at", { ascending: false })
+      // Get current user and their role
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError("User not authenticated");
+        return;
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      const role = profile?.role || "customer";
 
-      if (ordersError) {
-        console.error("Orders error:", ordersError)
-        throw ordersError
+      if (role === "admin") {
+        // Admin: fetch all revenue/orders
+        // Get all order items
+        const { data: orderItemsData, error: orderItemsError } = await supabase
+          .from("order_items")
+          .select(`
+            order_id,
+            total_price,
+            orders (
+              id,
+              total_amount,
+              payment_status,
+              payment_method,
+              created_at
+            )
+          `);
+        if (orderItemsError) {
+          console.error("Order items error:", orderItemsError);
+          throw orderItemsError;
+        }
+        // Get all orders
+        const { data: ordersData } = await supabase
+        .from("orders")
+          .select("*", { count: "exact", head: false });
+        // Calculate unique paid orders
+        const uniqueOrders = new Map();
+        orderItemsData?.forEach((item: any) => {
+          const order = item.orders;
+          if (order && order.payment_status === "paid" && !uniqueOrders.has(order.id)) {
+            uniqueOrders.set(order.id, order);
+          }
+        });
+        const ordersArr = Array.from(uniqueOrders.values()) as any[];
+        // Calculate revenue totals
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfPreviousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        const endOfPreviousMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+        const startOfPreviousWeek = new Date(startOfWeek.getTime() - 7 * 24 * 60 * 60 * 1000);
+        // Filter orders by time ranges
+        const monthlyOrders = ordersArr.filter((order) => new Date(order.created_at) >= startOfMonth);
+        const weeklyOrders = ordersArr.filter((order) => new Date(order.created_at) >= startOfWeek);
+        const dailyOrders = ordersArr.filter((order) => new Date(order.created_at) >= startOfDay);
+        const previousMonthOrders = ordersArr.filter(
+          (order) =>
+            new Date(order.created_at) >= startOfPreviousMonth && new Date(order.created_at) <= endOfPreviousMonth,
+        );
+        const previousWeekOrders = ordersArr.filter(
+          (order) => new Date(order.created_at) >= startOfPreviousWeek && new Date(order.created_at) < startOfWeek,
+        );
+        // Calculate revenue totals
+        const totalRevenue = ordersArr.reduce((sum, order) => sum + order.total_amount, 0);
+        const monthlyRevenue = monthlyOrders.reduce((sum, order) => sum + order.total_amount, 0);
+        const weeklyRevenue = weeklyOrders.reduce((sum, order) => sum + order.total_amount, 0);
+        const dailyRevenue = dailyOrders.reduce((sum, order) => sum + order.total_amount, 0);
+        const previousMonthRevenue = previousMonthOrders.reduce((sum, order) => sum + order.total_amount, 0);
+        const previousWeekRevenue = previousWeekOrders.reduce((sum, order) => sum + order.total_amount, 0);
+        // Calculate growth percentages
+        const monthlyGrowth =
+          previousMonthRevenue > 0
+            ? Math.round(((monthlyRevenue - previousMonthRevenue) / previousMonthRevenue) * 100)
+            : 0;
+        const weeklyGrowth =
+          previousWeekRevenue > 0 ? Math.round(((weeklyRevenue - previousWeekRevenue) / previousWeekRevenue) * 100) : 0;
+        // Calculate average order value
+        const averageOrderValue = ordersArr.length > 0 ? totalRevenue / ordersArr.length : 0;
+        // Group revenue by month (last 12 months)
+        const revenueByMonth: Array<{ month: string; revenue: number; orders: number }> = [];
+        for (let i = 11; i >= 0; i--) {
+          const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+          const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+          const monthOrders = ordersArr.filter(
+            (order) => new Date(order.created_at) >= monthStart && new Date(order.created_at) <= monthEnd,
+          );
+          revenueByMonth.push({
+            month: date.toLocaleDateString("en-US", { month: "short", year: "numeric" }),
+            revenue: monthOrders.reduce((sum, order) => sum + order.total_amount, 0),
+            orders: monthOrders.length,
+          });
+        }
+        // Group revenue by payment method
+        const paymentMethods = ordersArr.reduce(
+          (acc, order) => {
+            const method = order.payment_method;
+            if (!acc[method]) {
+              acc[method] = { revenue: 0, count: 0 };
+            }
+            acc[method].revenue += order.total_amount;
+            acc[method].count += 1;
+            return acc;
+          },
+          {} as Record<string, { revenue: number; count: number }>,
+        );
+        const revenueByPaymentMethod = Object.entries(paymentMethods).map(([method, data]) => {
+          const d = data as { revenue: number; count: number };
+          return {
+            method: method.replace("_", " ").toUpperCase(),
+            revenue: d.revenue,
+            count: d.count,
+          };
+        });
+        const revenueData = {
+          totalRevenue,
+          monthlyRevenue,
+          weeklyRevenue,
+          dailyRevenue,
+          totalOrders: ordersArr.length,
+          averageOrderValue,
+          monthlyGrowth,
+          weeklyGrowth,
+          revenueByMonth,
+          revenueByPaymentMethod,
+        };
+        setRevenue(revenueData);
+        setLoading(false);
+        return;
       }
 
-      if (!ordersData || ordersData.length === 0) {
+      if (role === "vendor") {
+        // Vendor: current logic (store-specific)
+        // Get current user and their store
+        const { data: storeData } = await supabase
+          .from("shops")
+          .select("id")
+          .eq("owner_id", user.id)
+          .single();
+
+        if (!storeData) {
+          setError("No store found for this user");
+          return;
+        }
+
+        // Get products from this store
+        const { data: storeProducts } = await supabase
+          .from("products")
+          .select("id")
+          .eq("shop_id", storeData.id);
+
+        const storeProductIds = storeProducts?.map(p => p.id) || [];
+
+        if (storeProductIds.length === 0) {
+          setRevenue({
+            totalRevenue: 0,
+            monthlyRevenue: 0,
+            weeklyRevenue: 0,
+            dailyRevenue: 0,
+            totalOrders: 0,
+            averageOrderValue: 0,
+            monthlyGrowth: 0,
+            weeklyGrowth: 0,
+            revenueByMonth: [],
+            revenueByPaymentMethod: [],
+          })
+          return
+        }
+
+        // Get order items for this store's products
+        const { data: orderItemsData, error: orderItemsError } = await supabase
+          .from("order_items")
+          .select(`
+            order_id,
+            total_price,
+            orders (
+              id,
+              total_amount,
+              payment_status,
+              payment_method,
+              created_at
+            )
+          `)
+          .in("product_id", storeProductIds);
+
+        if (orderItemsError) {
+          console.error("Order items error:", orderItemsError)
+          throw orderItemsError
+        }
+
+        if (!orderItemsData || orderItemsData.length === 0) {
         setRevenue({
           totalRevenue: 0,
           monthlyRevenue: 0,
@@ -71,6 +252,17 @@ export default function RevenuePage() {
         })
         return
       }
+
+        // Get unique orders with payment status 'paid'
+        const uniqueOrders = new Map();
+        orderItemsData.forEach((item: any) => {
+          const order = item.orders;
+          if (order && order.payment_status === "paid" && !uniqueOrders.has(order.id)) {
+            uniqueOrders.set(order.id, order);
+          }
+        });
+
+        const ordersData = Array.from(uniqueOrders.values()) as any[];
 
       // Calculate date ranges
       const now = new Date()
@@ -144,11 +336,14 @@ export default function RevenuePage() {
         {} as Record<string, { revenue: number; count: number }>,
       )
 
-      const revenueByPaymentMethod = Object.entries(paymentMethods).map(([method, data]) => ({
+        const revenueByPaymentMethod = Object.entries(paymentMethods).map(([method, data]) => {
+          const d = data as { revenue: number; count: number };
+          return {
         method: method.replace("_", " ").toUpperCase(),
-        revenue: data.revenue,
-        count: data.count,
-      }))
+            revenue: d.revenue,
+            count: d.count,
+          };
+        })
 
       const revenueData: RevenueData = {
         totalRevenue,
@@ -162,9 +357,16 @@ export default function RevenuePage() {
         revenueByMonth,
         revenueByPaymentMethod,
       }
-
-      setRevenue(revenueData)
-      console.log("Revenue data:", revenueData)
+        setRevenue(revenueData);
+        setLoading(false);
+        return;
+      } else {
+        // Customer/other: show friendly message
+        setRevenue(null);
+        setError("No revenue available for your account.");
+        setLoading(false);
+        return;
+      }
     } catch (error) {
       console.error("Error fetching revenue:", error)
       setError(error instanceof Error ? error.message : "Unknown error occurred")
@@ -197,9 +399,9 @@ export default function RevenuePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8"></div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -207,16 +409,16 @@ export default function RevenuePage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Revenue</h1>
-            <p className="text-gray-600">Track your revenue and financial performance</p>
+            <h1 className="text-2xl font-bold text-foreground">Revenue</h1>
+            <p className="text-muted-foreground">View your revenue statistics</p>
           </div>
         </div>
 
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-destructive/10 border border-destructive rounded-lg p-4">
           <div className="flex">
             <AlertCircle className="h-5 w-5 text-red-400" />
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error loading revenue data</h3>
+              <h3 className="text-sm font-medium text-red-800">Error loading revenue</h3>
               <div className="mt-2 text-sm text-red-700">
                 <p>{error}</p>
               </div>
@@ -229,13 +431,13 @@ export default function RevenuePage() {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (!revenue) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">No revenue data available</p>
+        <p className="text-muted-foreground">No revenue data available</p>
       </div>
     )
   }
@@ -245,8 +447,8 @@ export default function RevenuePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Revenue</h1>
-          <p className="text-gray-600">Track your revenue and financial performance</p>
+          <h1 className="text-2xl font-bold text-foreground">Revenue</h1>
+          <p className="text-muted-foreground">View your revenue statistics</p>
         </div>
         <div className="flex items-center space-x-4">
           <Select value={timeRange} onValueChange={setTimeRange}>
@@ -327,7 +529,7 @@ export default function RevenuePage() {
             <CardTitle>Key Metrics</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-card rounded-lg">
               <div>
                 <p className="text-sm font-medium">Average Order Value</p>
                 <p className="text-2xl font-bold text-blue-600">{formatCurrency(revenue.averageOrderValue)}</p>
@@ -335,7 +537,7 @@ export default function RevenuePage() {
               <DollarSign className="h-8 w-8 text-blue-600" />
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center justify-between p-4 bg-card rounded-lg">
               <div>
                 <p className="text-sm font-medium">Total Orders</p>
                 <p className="text-2xl font-bold text-purple-600">{formatNumber(revenue.totalOrders)}</p>
@@ -366,11 +568,11 @@ export default function RevenuePage() {
                 <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                   <div>
                     <p className="font-medium">{method.method}</p>
-                    <p className="text-sm text-gray-500">{method.count} orders</p>
+                    <p className="text-sm text-muted-foreground">{method.count} orders</p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold">{formatCurrency(method.revenue)}</p>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {((method.revenue / revenue.totalRevenue) * 100).toFixed(1)}%
                     </p>
                   </div>
@@ -392,11 +594,11 @@ export default function RevenuePage() {
               <div key={index} className="flex items-center justify-between p-3 border-b">
                 <div>
                   <p className="font-medium">{month.month}</p>
-                  <p className="text-sm text-gray-500">{month.orders} orders</p>
+                  <p className="text-sm text-muted-foreground">{month.orders} orders</p>
                 </div>
                 <div className="text-right">
                   <p className="font-bold">{formatCurrency(month.revenue)}</p>
-                  <div className="w-32 bg-gray-200 rounded-full h-2 mt-1">
+                  <div className="w-32 bg-border rounded-full h-2 mt-1">
                     <div
                       className="bg-blue-600 h-2 rounded-full"
                       style={{

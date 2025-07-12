@@ -59,11 +59,11 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <DashboardSidebar />
       <div className="lg:pl-64">
         <DashboardHeader user={user} />
-        <main className="p-6">{children}</main>
+        <main className="p-6 bg-gray-50 dark:bg-gray-900">{children}</main>
       </div>
     </div>
   )

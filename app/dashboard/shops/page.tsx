@@ -287,7 +287,7 @@ export default function ShopsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8"></div>
       </div>
     );
   }
@@ -297,14 +297,12 @@ export default function ShopsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Shops</h1>
-            <p className="text-gray-600">
-              Manage your shops and store listings
-            </p>
+            <h1 className="text-2xl font-bold text-foreground">Shops</h1>
+            <p className="text-muted-foreground">Manage your shops</p>
           </div>
         </div>
 
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-destructive/10 border border-destructive rounded-lg p-4">
           <div className="flex">
             <AlertCircle className="h-5 w-5 text-red-400" />
             <div className="ml-3">
@@ -331,8 +329,8 @@ export default function ShopsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Shops</h1>
-          <p className="text-gray-600">Manage your shops and store listings</p>
+          <h1 className="text-2xl font-bold text-foreground">Shops</h1>
+          <p className="text-muted-foreground">Manage your shops</p>
         </div>
         <div className="flex items-center space-x-3">
           <Badge variant="secondary">{filteredShops.length} shops</Badge>
@@ -371,7 +369,7 @@ export default function ShopsPage() {
       </div>
 
       {/* Shops Table */}
-      <div className="bg-white rounded-lg border">
+      <div className="bg-background rounded-lg border border-border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -403,11 +401,11 @@ export default function ShopsPage() {
                     </div>
                     <div>
                       <div className="font-medium">{shop.name}</div>
-                      <div className="text-sm text-gray-500 max-w-xs truncate">
+                      <div className="text-sm text-muted-foreground max-w-xs truncate">
                         {shop.description || "No description"}
                       </div>
                       {shop.timezone && (
-                        <div className="text-xs text-gray-400 flex items-center mt-1">
+                        <div className="text-xs text-muted-foreground flex items-center mt-1">
                           <MapPin className="w-3 h-3 mr-1" />
                           {shop.timezone}
                         </div>
@@ -422,7 +420,7 @@ export default function ShopsPage() {
                   <div>
                     <div className="text-sm">{shop.email}</div>
                     {shop.phone_number && (
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-muted-foreground">
                         {shop.phone_number}
                       </div>
                     )}
@@ -430,7 +428,7 @@ export default function ShopsPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center space-x-2">
-                    <Clock className="w-4 h-4 text-gray-400" />
+                    <Clock className="w-4 h-4 text-muted-foreground" />
                     <div>
                       <div className="text-sm font-medium">
                         {formatWorkingHours(shop.today_hours)}
@@ -494,11 +492,11 @@ export default function ShopsPage() {
 
         {filteredShops.length === 0 && (
           <div className="text-center py-12">
-            <Store className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <Store className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">
               No shops found
             </h3>
-            <p className="text-gray-500">
+            <p className="text-muted-foreground">
               {searchQuery || statusFilter !== "all"
                 ? "Try adjusting your search or filter criteria"
                 : "Shops will appear here when you create them"}
@@ -508,9 +506,9 @@ export default function ShopsPage() {
 
         {/* Pagination */}
         {filteredShops.length > 0 && (
-          <div className="flex items-center justify-between p-4 border-t">
+          <div className="flex items-center justify-between p-4 border-t border-border">
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-muted-foreground">
                 Showing {filteredShops.length} of {shops.length} shops
               </span>
             </div>

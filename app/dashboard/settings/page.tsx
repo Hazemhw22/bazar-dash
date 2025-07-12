@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { supabase } from "@/lib/supabase"
-import { User, Mail, Phone, MapPin, Upload, Save, AlertCircle } from "lucide-react"
+import { User, Mail, Phone, MapPin, Upload, Save, AlertCircle, Store } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
+import { useNotifications } from "@/components/notifications/NotificationProvider";
 
 interface Profile {
   id: string
@@ -29,6 +30,8 @@ export default function SettingsPage() {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
+  const { notify } = useNotifications();
 
   // Form states
   const [fullName, setFullName] = useState("")
@@ -39,8 +42,75 @@ export default function SettingsPage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
 
   useEffect(() => {
+    checkUserRole()
     getCurrentUser()
+    testStorageConnection()
   }, [])
+
+  const checkUserRole = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single()
+        
+        if (profile?.role) {
+          setCurrentUserRole(profile.role)
+        }
+      }
+    } catch (error) {
+      console.error("Error checking user role:", error)
+    }
+  }
+
+  const testStorageConnection = async () => {
+    try {
+      console.log("Testing Supabase client configuration...");
+      console.log("Supabase client initialized:", !!supabase);
+      
+      // Test basic Supabase connection first
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      console.log("Auth test result:", { user: authData.user?.id, error: authError });
+      
+      if (authError) {
+        console.error("Auth test failed:", authError);
+        notify({ 
+          type: "warning", 
+          message: "Authentication issue. Please sign in again." 
+        });
+        return;
+      }
+      
+      // Test if we can list files in the bucket (this will fail if bucket doesn't exist or no permissions)
+      const { data, error } = await supabase.storage.from("user-avatars").list("", {
+        limit: 1
+      });
+      
+      console.log("Storage list result:", { data, error });
+      
+      if (error) {
+        console.error("Storage bucket test failed:", error);
+        if (error.message.includes("bucket")) {
+          notify({ 
+            type: "warning", 
+            message: "Storage bucket 'user-avatars' not found. Please create it in your Supabase dashboard." 
+          });
+        } else {
+          notify({ 
+            type: "warning", 
+            message: "Storage bucket not accessible. Please check bucket permissions." 
+          });
+        }
+      } else {
+        console.log("Storage bucket test successful");
+      }
+    } catch (error) {
+      console.error("Storage connection test error:", error);
+    }
+  };
 
   const getCurrentUser = async () => {
     try {
@@ -92,59 +162,117 @@ export default function SettingsPage() {
 
   const uploadAvatar = async (file: File): Promise<string | null> => {
     try {
-      const fileExt = file.name.split(".").pop()
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`
-      const filePath = `avatars/${fileName}`
-
-      const { error: uploadError } = await supabase.storage.from("user-avatars").upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: false,
-      })
-
-      if (uploadError) {
-        console.error("Upload error:", uploadError)
-        throw uploadError
+      setUploadingAvatar(true);
+      
+      // Basic validation
+      if (!file || file.size === 0) {
+        notify({ type: "error", message: "Invalid file selected." });
+        setUploadingAvatar(false);
+        return null;
       }
 
-      const { data } = supabase.storage.from("user-avatars").getPublicUrl(filePath)
+      if (file.size > 2 * 1024 * 1024) {
+        notify({ type: "error", message: "File size must be less than 2MB." });
+        setUploadingAvatar(false);
+        return null;
+      }
 
-      return data.publicUrl
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      
+      // Upload to user-specific folder (required by the policy)
+      const userFolder = user?.id || 'unknown';
+      const filePath = `${userFolder}/${fileName}`;
+      
+      console.log("Attempting upload:", filePath);
+      
+      // Simple upload attempt
+      const { data, error } = await supabase.storage
+        .from("user-avatars")
+        .upload(filePath, file);
+
+      console.log("Upload response:", { data, error });
+      
+      if (error) {
+        console.error("Upload failed:", error);
+        notify({ type: "error", message: `Upload failed: ${error.message}` });
+        setUploadingAvatar(false);
+        return null;
+      }
+
+      if (!data?.path) {
+        console.error("No path returned from upload");
+        notify({ type: "error", message: "Upload failed: No file path returned" });
+        setUploadingAvatar(false);
+        return null;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from("user-avatars")
+        .getPublicUrl(data.path);
+
+      console.log("Public URL:", urlData.publicUrl);
+      setUploadingAvatar(false);
+      return urlData.publicUrl;
+      
     } catch (error) {
-      console.error("Error uploading avatar:", error)
-      return null
+      console.error("Upload exception:", error);
+      notify({ type: "error", message: "Upload failed due to network error" });
+      setUploadingAvatar(false);
+      return null;
     }
-  }
+  };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    setAvatarFile(file);
+    // Upload immediately and show preview only if successful
+    const uploadedUrl = await uploadAvatar(file);
+    if (uploadedUrl) {
+      setAvatarUrl(uploadedUrl);
+      
+      // Update profile in database with the new avatar URL
+      if (user) {
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .upsert({
+            id: user.id,
+            avatar_url: uploadedUrl,
+            updated_at: new Date().toISOString(),
+          }, {
+            onConflict: "id"
+          });
 
-    setUploadingAvatar(true)
-    setAvatarFile(file)
-
-    // Create preview URL
-    const previewUrl = URL.createObjectURL(file)
-    setAvatarUrl(previewUrl)
-    setUploadingAvatar(false)
-  }
+        if (profileError) {
+          console.error("Error updating profile:", profileError);
+        }
+      }
+      
+      notify({ type: "success", message: "Avatar uploaded successfully!" });
+    }
+    setUploadingAvatar(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-
+    e.preventDefault();
+    setLoading(true);
     try {
       if (!user) {
-        alert("User not authenticated")
-        return
+        notify({ type: "error", message: "User not authenticated" });
+        setLoading(false);
+        return;
+      }
+      let finalAvatarUrl = avatarUrl;
+      if (avatarFile && !avatarUrl.startsWith("http")) {
+        // If avatarFile is set and avatarUrl is not a remote URL, upload it
+        const uploadedUrl = await uploadAvatar(avatarFile);
+        if (uploadedUrl) finalAvatarUrl = uploadedUrl;
       }
 
-      // Upload avatar if provided
-      let finalAvatarUrl = avatarUrl
-      if (avatarFile) {
-        const uploadedUrl = await uploadAvatar(avatarFile)
-        if (uploadedUrl) finalAvatarUrl = uploadedUrl
-      }
-
+      // Update profile in database
       const profileData = {
         id: user.id,
         email: email.trim(),
@@ -153,29 +281,38 @@ export default function SettingsPage() {
         address: address.trim() || null,
         avatar_url: finalAvatarUrl || null,
         updated_at: new Date().toISOString(),
-      }
+      };
 
-      console.log("Updating profile data:", profileData)
-
-      const { error } = await supabase.from("profiles").upsert(profileData, {
+      const { error: profileError } = await supabase.from("profiles").upsert(profileData, {
         onConflict: "id",
-      })
-
-      if (error) {
-        console.error("Database error:", error)
-        throw error
+      });
+      
+      if (profileError) {
+        notify({ type: "error", message: profileError.message || "Error updating profile." });
+        setLoading(false);
+        return;
       }
 
-      alert("Profile updated successfully!")
-      getCurrentUser() // Refresh data
+      // Update user metadata with full name only (avatar is stored in profiles table)
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: {
+          full_name: fullName.trim() || null,
+        }
+      });
+
+      if (metadataError) {
+        console.error("Error updating user metadata:", metadataError);
+        // Don't fail the entire operation for metadata update errors
+      }
+
+      notify({ type: "success", message: "Profile updated successfully!" });
+      getCurrentUser();
     } catch (error) {
-      console.error("Error updating profile:", error)
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
-      alert(`Error updating profile: ${errorMessage}`)
+      notify({ type: "error", message: "Error updating profile. Please try again." });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const signOut = async () => {
     try {
@@ -185,6 +322,20 @@ export default function SettingsPage() {
     } catch (error) {
       console.error("Error signing out:", error)
       alert("Error signing out")
+    }
+  }
+
+  // Redirect to role-specific settings pages
+  if (currentUserRole) {
+    if (currentUserRole === "admin") {
+      window.location.href = "/dashboard/settings/admin"
+      return null
+    } else if (currentUserRole === "vendor") {
+      window.location.href = "/dashboard/settings/vendor"
+      return null
+    } else if (currentUserRole === "customer") {
+      window.location.href = "/dashboard/settings/customer"
+      return null
     }
   }
 
@@ -223,8 +374,8 @@ export default function SettingsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-          <p className="text-gray-600">Manage your account settings</p>
+          <h1 className="text-2xl font-bold text-gray-900">Store Settings</h1>
+          <p className="text-gray-600">Manage your store information and settings</p>
         </div>
         <Button onClick={signOut} variant="outline">
           Sign Out
@@ -237,7 +388,7 @@ export default function SettingsPage() {
           <div className="lg:col-span-2 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Profile Information</CardTitle>
+                <CardTitle>Store Owner Information</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -304,15 +455,15 @@ export default function SettingsPage() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Profile Picture</CardTitle>
+                <CardTitle>Store Logo</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center space-x-6">
-                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+                  <div className="w-20 h-20 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                     {avatarUrl ? (
-                      <img src={avatarUrl || "/placeholder.svg"} alt="Avatar" className="w-full h-full object-cover" />
+                      <img src={avatarUrl || "/placeholder.svg"} alt="Store Logo" className="w-full h-full object-cover" />
                     ) : (
-                      <User className="w-8 h-8 text-gray-400" />
+                      <Store className="w-8 h-8 text-gray-400" />
                     )}
                   </div>
                   <div>
@@ -351,19 +502,19 @@ export default function SettingsPage() {
                 <div>
                   <strong>Created:</strong>
                   <p className="text-gray-600">
-                    {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : "—"}
+                    {profile?.created_at ? new Date(profile.created_at).toLocaleDateString("en-GB") : "—"}
                   </p>
                 </div>
                 <div>
                   <strong>Last Updated:</strong>
                   <p className="text-gray-600">
-                    {profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString() : "—"}
+                    {profile?.updated_at ? new Date(profile.updated_at).toLocaleDateString("en-GB") : "—"}
                   </p>
                 </div>
                 <div>
                   <strong>Last Sign In:</strong>
                   <p className="text-gray-600">
-                    {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString() : "—"}
+                    {user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString("en-GB") : "—"}
                   </p>
                 </div>
               </CardContent>
