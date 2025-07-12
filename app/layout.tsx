@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { NotificationProvider } from "@/components/notifications/NotificationProvider";
-import NotificationToaster from "@/components/notifications/NotificationToaster";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ClientNotificationWrapper } from "@/components/notifications/ClientNotificationWrapper";
 
 export const metadata: Metadata = {
   title: 'bazar - dash',
@@ -19,10 +18,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           enableSystem
           disableTransitionOnChange
         >
-          <NotificationProvider>
+          <ClientNotificationWrapper>
             {children}
-            <NotificationToaster />
-          </NotificationProvider>
+          </ClientNotificationWrapper>
         </ThemeProvider>
       </body>
     </html>
