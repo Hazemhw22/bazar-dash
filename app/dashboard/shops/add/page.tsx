@@ -30,6 +30,7 @@ import {
   Copy,
   Save,
 } from "lucide-react";
+import { useNotifications } from "@/components/notifications/NotificationProvider";
 
 const DAYS_OF_WEEK = [
   "Monday",
@@ -59,6 +60,7 @@ export default function AddShopPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [ownerName, setOwnerName] = useState<string>("");
+  const { notify } = useNotifications();
 
   // Form states
   const [name, setName] = useState("");
@@ -72,6 +74,8 @@ export default function AddShopPage() {
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
   const [isActive, setIsActive] = useState(true);
   const [timezone, setTimezone] = useState("Asia/Riyadh");
+  const [deliveryTimeFrom, setDeliveryTimeFrom] = useState("");
+  const [deliveryTimeTo, setDeliveryTimeTo] = useState("");
   const [workingHours, setWorkingHours] = useState<WorkingHours[]>([
     { day: "Monday", open_time: "09:00", close_time: "18:00", is_open: true },
     { day: "Tuesday", open_time: "09:00", close_time: "18:00", is_open: true },
@@ -277,6 +281,8 @@ export default function AddShopPage() {
         is_active: isActive,
         working_hours: workingHours,
         timezone: timezone,
+        delivery_time_from: Number.parseInt(deliveryTimeFrom) || 0,
+        delivery_time_to: Number.parseInt(deliveryTimeTo) || 0,
       };
 
       console.log("Inserting shop data:", shopData);
@@ -287,18 +293,15 @@ export default function AddShopPage() {
         .select();
 
       if (error) {
-        console.error("Database error:", error);
+        notify({ type: "error", message: error.message || "Error adding shop." });
         throw error;
       }
 
-      console.log("Shop created successfully:", data);
-      alert("Shop added successfully!");
+      notify({ type: "success", message: "Shop added successfully!" });
       router.push("/dashboard/shops");
     } catch (error) {
-      console.error("Error adding shop:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      alert(`Error adding shop: ${errorMessage}`);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      notify({ type: "error", message: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -399,6 +402,32 @@ export default function AddShopPage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="deliveryTimeFrom">Delivery Time From (minutes)</Label>
+                    <Input
+                      id="deliveryTimeFrom"
+                      type="number"
+                      value={deliveryTimeFrom}
+                      onChange={(e) => setDeliveryTimeFrom(e.target.value)}
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="deliveryTimeTo">Delivery Time To (minutes)</Label>
+                    <Input
+                      id="deliveryTimeTo"
+                      type="number"
+                      value={deliveryTimeTo}
+                      onChange={(e) => setDeliveryTimeTo(e.target.value)}
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
@@ -418,7 +447,7 @@ export default function AddShopPage() {
                     key={hours.day}
                     className="flex items-center space-x-4 p-3 border rounded-lg"
                   >
-                    <div className="w-20">
+                    <div className="w-24">
                       <Label className="text-sm font-medium">{hours.day}</Label>
                     </div>
 
@@ -458,7 +487,9 @@ export default function AddShopPage() {
                             className="w-32"
                           />
                         </div>
-
+                        <div className="text-sm text-green-600 font-medium">
+                          Open
+                        </div>
                         <Button
                           type="button"
                           variant="outline"
@@ -471,7 +502,7 @@ export default function AddShopPage() {
                         </Button>
                       </>
                     ) : (
-                      <span className="text-gray-500 italic">Closed</span>
+                      <div className="text-sm text-red-600 font-medium">Closed</div>
                     )}
                   </div>
                 ))}
@@ -636,13 +667,13 @@ export default function AddShopPage() {
               </CardHeader>
               <CardContent>
                 {(() => {
-                  const today = new Date().toLocaleDateString("en-US", {
-                    weekday: "long",
-                  });
-                  const todayHours = workingHours.find((h) => h.day === today);
+                  const todayIndex = new Date().getDay();
+                  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                  const todayName = dayNames[todayIndex];
+                  const todayHours = workingHours.find((h) => h.day === todayName);
                   return (
                     <div className="text-center">
-                      <div className="text-lg font-semibold">{today}</div>
+                      <div className="text-lg font-semibold">{todayName}</div>
                       {todayHours?.is_open ? (
                         <div className="text-sm text-green-600">
                           {todayHours.open_time} - {todayHours.close_time}

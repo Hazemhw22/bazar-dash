@@ -1,4 +1,3 @@
-// تعريفات الأنواع لمشروع التجارة الإلكترونية
 
 // نوع المستخدم الأساسي من Supabase Auth
 export type User = {
@@ -60,6 +59,8 @@ export type Shop = {
   is_active: boolean;
   working_hours?: WorkingHours[] | null;
   timezone?: string | null;
+  delivery_time_from: number;
+  delivery_time_to: number;
   created_at: string;
   updated_at: string;
 };

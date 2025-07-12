@@ -28,6 +28,7 @@ import {
   Copy,
   Save,
 } from "lucide-react";
+import { useNotifications } from "@/components/notifications/NotificationProvider";
 
 const DAYS_OF_WEEK = [
   "Monday",
@@ -71,9 +72,12 @@ export default function EditShopPage() {
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
   const [isActive, setIsActive] = useState(true);
   const [timezone, setTimezone] = useState("Asia/Riyadh");
+  const [deliveryTimeFrom, setDeliveryTimeFrom] = useState("");
+  const [deliveryTimeTo, setDeliveryTimeTo] = useState("");
   const [workingHours, setWorkingHours] = useState<WorkingHours[]>([]);
   const [ownerName, setOwnerName] = useState<string>("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const { notify } = useNotifications();
 
   useEffect(() => {
     fetchShop();
@@ -99,6 +103,8 @@ export default function EditShopPage() {
       setBackgroundImageUrl(data.background_image_url || "");
       setIsActive(data.is_active);
       setTimezone(data.timezone || "Asia/Riyadh");
+      setDeliveryTimeFrom(data.delivery_time_from?.toString() || "");
+      setDeliveryTimeTo(data.delivery_time_to?.toString() || "");
       setWorkingHours(
         data.working_hours ||
           DAYS_OF_WEEK.map((day) => ({
@@ -229,13 +235,19 @@ export default function EditShopPage() {
           is_active: isActive,
           working_hours: workingHours,
           timezone: timezone,
+          delivery_time_from: Number.parseInt(deliveryTimeFrom) || 0,
+          delivery_time_to: Number.parseInt(deliveryTimeTo) || 0,
         })
         .eq("id", shopId);
-      if (error) throw error;
-      alert("Shop updated successfully!");
+      if (error) {
+        notify({ type: "error", message: error.message || "Error updating shop." });
+        throw error;
+      }
+      notify({ type: "success", message: "Shop updated successfully!" });
       router.push(`/dashboard/shops/${shopId}`);
     } catch (err: any) {
       setError(err.message || "Unknown error");
+      notify({ type: "error", message: err.message || "Unknown error" });
     } finally {
       setSaving(false);
     }
@@ -328,6 +340,32 @@ export default function EditShopPage() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="deliveryTimeFrom">Delivery Time From (minutes)</Label>
+                    <Input
+                      id="deliveryTimeFrom"
+                      type="number"
+                      value={deliveryTimeFrom}
+                      onChange={(e) => setDeliveryTimeFrom(e.target.value)}
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="deliveryTimeTo">Delivery Time To (minutes)</Label>
+                    <Input
+                      id="deliveryTimeTo"
+                      type="number"
+                      value={deliveryTimeTo}
+                      onChange={(e) => setDeliveryTimeTo(e.target.value)}
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
             {/* Working Hours */}
@@ -346,7 +384,7 @@ export default function EditShopPage() {
                     key={hours.day}
                     className="flex items-center space-x-4 p-3 border rounded-lg"
                   >
-                    <div className="w-20">
+                    <div className="w-24">
                       <Label className="text-sm font-medium">{hours.day}</Label>
                     </div>
                     <Switch
@@ -384,6 +422,9 @@ export default function EditShopPage() {
                             className="w-32"
                           />
                         </div>
+                        <div className="text-sm text-green-600 font-medium">
+                          Open
+                        </div>
                         <Button
                           type="button"
                           variant="outline"
@@ -396,7 +437,7 @@ export default function EditShopPage() {
                         </Button>
                       </>
                     ) : (
-                      <span className="text-gray-500 italic">Closed</span>
+                      <div className="text-sm text-red-600 font-medium">Closed</div>
                     )}
                   </div>
                 ))}
@@ -551,13 +592,13 @@ export default function EditShopPage() {
               </CardHeader>
               <CardContent>
                 {(() => {
-                  const today = new Date().toLocaleDateString("en-US", {
-                    weekday: "long",
-                  });
-                  const todayHours = workingHours.find((h) => h.day === today);
+                  const todayIndex = new Date().getDay();
+                  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                  const todayName = dayNames[todayIndex];
+                  const todayHours = workingHours.find((h) => h.day === todayName);
                   return (
                     <div className="text-center">
-                      <div className="text-lg font-semibold">{today}</div>
+                      <div className="text-lg font-semibold">{todayName}</div>
                       {todayHours?.is_open ? (
                         <div className="text-sm text-green-600">
                           {todayHours.open_time} - {todayHours.close_time}

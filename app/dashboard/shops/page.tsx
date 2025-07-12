@@ -153,10 +153,18 @@ export default function ShopsPage() {
 
     try {
       const now = new Date();
-      const currentDay = now.toLocaleDateString("en-US", {
-        weekday: "long",
-        timeZone: timezone,
-      });
+      const todayIndex = now.getDay();
+      const dayNames = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const todayName = dayNames[todayIndex];
+
       const currentTime = now.toLocaleTimeString("en-US", {
         hour12: false,
         hour: "2-digit",
@@ -165,7 +173,7 @@ export default function ShopsPage() {
       });
 
       const todaySchedule = workingHours.find(
-        (schedule) => schedule.day === currentDay
+        (schedule) => schedule.day === todayName
       );
 
       if (!todaySchedule || !todaySchedule.is_open) return false;
@@ -186,10 +194,19 @@ export default function ShopsPage() {
     if (!workingHours || workingHours.length === 0) return undefined;
 
     try {
-      const now = new Date();
-      const currentDay = now.toLocaleDateString("en-US", { weekday: "long" });
+      const todayIndex = new Date().getDay();
+      const dayNames = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ];
+      const todayName = dayNames[todayIndex];
 
-      return workingHours.find((schedule) => schedule.day === currentDay);
+      return workingHours.find((schedule) => schedule.day === todayName);
     } catch (error) {
       console.error("Error getting today's hours:", error);
       return undefined;
@@ -263,7 +280,7 @@ export default function ShopsPage() {
 
   const formatWorkingHours = (hours: WorkingHours | undefined) => {
     if (!hours) return "No schedule";
-    if (!hours.is_open) return "Closed today";
+    if (!hours.is_open) return "Closed";
     return `${hours.open_time} - ${hours.close_time}`;
   };
 
@@ -419,16 +436,10 @@ export default function ShopsPage() {
                         {formatWorkingHours(shop.today_hours)}
                       </div>
                       <Badge
-                        variant={
-                          shop.is_currently_open ? "default" : "secondary"
-                        }
-                        className={
-                          shop.is_currently_open
-                            ? "bg-green-500"
-                            : "bg-gray-500"
-                        }
+                        variant={shop.today_hours?.is_open ? "default" : "secondary"}
+                        className={shop.today_hours?.is_open ? "bg-green-500" : "bg-gray-500"}
                       >
-                        {shop.is_currently_open ? "Open Now" : "Closed"}
+                        {shop.today_hours?.is_open ? "Open" : "Closed"}
                       </Badge>
                     </div>
                   </div>

@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import type { Category, Shop, ProductInsert } from "@/types/database";
 import { ArrowLeft, Package, Upload, X, Save } from "lucide-react";
+import { useNotifications } from "@/components/notifications/NotificationProvider";
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -58,6 +59,8 @@ export default function AddProductPage() {
   >([]);
   const [propertyTitle, setPropertyTitle] = useState("");
   const [propertyOptions, setPropertyOptions] = useState<string[]>([""]);
+
+  const { notify } = useNotifications();
 
   useEffect(() => {
     getCurrentUser();
@@ -308,18 +311,15 @@ export default function AddProductPage() {
         .select();
 
       if (error) {
-        console.error("Database error:", error);
+        notify({ type: "error", message: error.message || "Error adding product." });
         throw error;
       }
 
-      console.log("Product created successfully:", data);
-      alert("Product added successfully!");
+      notify({ type: "success", message: "Product added successfully!" });
       router.push("/dashboard/products");
     } catch (error) {
-      console.error("Error adding product:", error);
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error occurred";
-      alert(`Error adding product: ${errorMessage}`);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      notify({ type: "error", message: errorMessage });
     } finally {
       setLoading(false);
     }

@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import { ArrowLeft, Save, Upload, ImageIcon, X } from "lucide-react";
+import { useNotifications } from "@/components/notifications/NotificationProvider";
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -36,6 +37,8 @@ export default function EditProductPage() {
   const [isActive, setIsActive] = useState(true);
   const [categoryId, setCategoryId] = useState<string>("");
   const [shopId, setShopId] = useState<string>("");
+  const [deliveryTimeFrom, setDeliveryTimeFrom] = useState<number>(0);
+  const [deliveryTimeTo, setDeliveryTimeTo] = useState<number>(0);
   const [images, setImages] = useState<string[]>([]);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -53,6 +56,8 @@ export default function EditProductPage() {
   >([]);
   const [propertyTitle, setPropertyTitle] = useState("");
   const [propertyOptions, setPropertyOptions] = useState<string[]>([""]);
+
+  const { notify } = useNotifications();
 
   useEffect(() => {
     fetchProduct();
@@ -201,11 +206,15 @@ export default function EditProductPage() {
         .from("products")
         .update(productData)
         .eq("id", productId);
-      if (error) throw error;
-      alert("Product updated successfully!");
+      if (error) {
+        notify({ type: "error", message: error.message || "Error updating product." });
+        throw error;
+      }
+      notify({ type: "success", message: "Product updated successfully!" });
       router.push(`/dashboard/products`);
     } catch (err: any) {
       setError(err.message || "Unknown error");
+      notify({ type: "error", message: err.message || "Unknown error" });
     } finally {
       setSaving(false);
     }
