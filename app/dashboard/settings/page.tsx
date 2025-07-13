@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { supabase } from "@/lib/supabase"
-import { User, Mail, Phone, MapPin, Upload, Save, AlertCircle, Store } from "lucide-react"
+import { User, Mail, Phone, MapPin, Upload, Save, AlertCircle, Store, Bell } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { useNotifications } from "@/hooks/useNotifications";
-import { NotificationTemplates } from "@/lib/notifications";
+import { safeCreateNotification, NotificationTemplates } from "@/lib/notifications";
 
 interface Profile {
   id: string
@@ -32,7 +32,7 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
-  const { addNotification } = useNotifications();
+  const { addNotification, notifications, markAsRead, unreadCount } = useNotifications();
 
   // Form states
   const [fullName, setFullName] = useState("")
@@ -296,6 +296,9 @@ export default function SettingsPage() {
         console.error("Error updating user metadata:", metadataError);
         // Don't fail the entire operation for metadata update errors
       }
+
+      // Create notification for profile update
+      await safeCreateNotification(NotificationTemplates.profileUpdated(fullName.trim() || email))
 
       addNotification({ type: "success", title: "Success", message: "Profile updated successfully!" });
       getCurrentUser();

@@ -153,8 +153,14 @@ export const createNotification = async (notification: {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) {
-      console.error("No authenticated user found");
+    if (!user || !user.id) {
+      console.error("No authenticated user found or invalid user ID");
+      return;
+    }
+
+    // Validate user ID is a proper UUID
+    if (!user.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      console.error("Invalid user ID format:", user.id);
       return;
     }
 
@@ -394,4 +400,152 @@ export const NotificationTemplates = {
     message: error,
     type: "error" as const,
   }),
+
+  // Order Management
+  orderCreated: (orderId: string) => ({
+    title: "Order Created",
+    message: `New order #${orderId.slice(0, 8)} has been created successfully.`,
+    type: "success" as const,
+  }),
+
+  orderUpdated: (orderId: string, status: string) => ({
+    title: "Order Updated",
+    message: `Order #${orderId.slice(0, 8)} status has been updated to ${status}.`,
+    type: "success" as const,
+  }),
+
+  orderDeleted: (orderId: string) => ({
+    title: "Order Deleted",
+    message: `Order #${orderId.slice(0, 8)} has been deleted.`,
+    type: "warning" as const,
+  }),
+
+  // Homepage Management
+  offerCreated: (offerName: string) => ({
+    title: "Offer Created",
+    message: `Special offer "${offerName}" has been created successfully.`,
+    type: "success" as const,
+  }),
+
+  offerUpdated: (offerName: string) => ({
+    title: "Offer Updated",
+    message: `Special offer "${offerName}" has been updated successfully.`,
+    type: "success" as const,
+  }),
+
+  offerDeleted: (offerName: string) => ({
+    title: "Offer Deleted",
+    message: `Special offer "${offerName}" has been deleted.`,
+    type: "warning" as const,
+  }),
+
+  featuredStoreAdded: (storeName: string) => ({
+    title: "Store Featured",
+    message: `Store "${storeName}" has been added to featured stores.`,
+    type: "success" as const,
+  }),
+
+  featuredStoreRemoved: (storeName: string) => ({
+    title: "Store Unfeatured",
+    message: `Store "${storeName}" has been removed from featured stores.`,
+    type: "warning" as const,
+  }),
+
+  // Product Association
+  productsAddedToOffer: (offerName: string, count: number) => ({
+    title: "Products Added",
+    message: `${count} product(s) have been added to offer "${offerName}".`,
+    type: "success" as const,
+  }),
+
+  productsRemovedFromOffer: (offerName: string, count: number) => ({
+    title: "Products Removed",
+    message: `${count} product(s) have been removed from offer "${offerName}".`,
+    type: "warning" as const,
+  }),
+
+  // Status Changes
+  statusActivated: (itemType: string, itemName: string) => ({
+    title: `${itemType} Activated`,
+    message: `${itemType} "${itemName}" has been activated successfully.`,
+    type: "success" as const,
+  }),
+
+  statusDeactivated: (itemType: string, itemName: string) => ({
+    title: `${itemType} Deactivated`,
+    message: `${itemType} "${itemName}" has been deactivated.`,
+    type: "warning" as const,
+  }),
+
+  // Bulk Operations
+  bulkDelete: (itemType: string, count: number) => ({
+    title: "Bulk Delete",
+    message: `${count} ${itemType}(s) have been deleted successfully.`,
+    type: "warning" as const,
+  }),
+
+  bulkUpdate: (itemType: string, count: number) => ({
+    title: "Bulk Update",
+    message: `${count} ${itemType}(s) have been updated successfully.`,
+    type: "success" as const,
+  }),
+
+  // Import/Export
+  importSuccess: (itemType: string, count: number) => ({
+    title: "Import Successful",
+    message: `${count} ${itemType}(s) have been imported successfully.`,
+    type: "success" as const,
+  }),
+
+  exportSuccess: (itemType: string, count: number) => ({
+    title: "Export Successful",
+    message: `${count} ${itemType}(s) have been exported successfully.`,
+    type: "success" as const,
+  }),
+
+  // Payment & Billing
+  paymentSuccess: (amount: number) => ({
+    title: "Payment Successful",
+    message: `Payment of $${amount.toFixed(2)} has been processed successfully.`,
+    type: "success" as const,
+  }),
+
+  paymentFailed: (amount: number) => ({
+    title: "Payment Failed",
+    message: `Payment of $${amount.toFixed(2)} has failed. Please try again.`,
+    type: "error" as const,
+  }),
+
+  // Inventory Management
+  lowStock: (productName: string, quantity: number) => ({
+    title: "Low Stock Alert",
+    message: `Product "${productName}" is running low on stock (${quantity} remaining).`,
+    type: "warning" as const,
+  }),
+
+  outOfStock: (productName: string) => ({
+    title: "Out of Stock",
+    message: `Product "${productName}" is now out of stock.`,
+    type: "error" as const,
+  }),
+
+  stockUpdated: (productName: string, newQuantity: number) => ({
+    title: "Stock Updated",
+    message: `Stock for "${productName}" has been updated to ${newQuantity} units.`,
+    type: "success" as const,
+  }),
+};
+
+// Safe notification creation that won't break the application flow
+export const safeCreateNotification = async (notification: {
+  title: string;
+  message: string;
+  type: "success" | "warning" | "error" | "info";
+}): Promise<void> => {
+  try {
+    await createNotification(notification);
+  } catch (error) {
+    console.error("Failed to create notification (non-blocking):", error);
+    // Don't throw the error to prevent breaking the main application flow
+  }
 }; 

@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
+import { safeCreateNotification, NotificationTemplates } from "@/lib/notifications";
 import {
   Search,
   Plus,
@@ -91,6 +92,10 @@ export default function UsersPage() {
     }
 
     try {
+      // Get user name before deletion
+      const userToDelete = users.find(user => user.id === userId);
+      const userName = userToDelete?.full_name || userToDelete?.email || "Unknown User";
+
       const { error } = await supabase
         .from("profiles")
         .delete()
@@ -100,6 +105,9 @@ export default function UsersPage() {
         console.error("Delete error:", error);
         throw error;
       }
+
+      // Create notification
+      await safeCreateNotification(NotificationTemplates.userDeleted(userName))
 
       // إزالة المستخدم من القائمة محلياً
       setUsers((prev) => prev.filter((user) => user.id !== userId));

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import type { Order, OrderStatus } from "@/types/database";
+import { safeCreateNotification, NotificationTemplates } from "@/lib/notifications";
 import {
   Search,
   Plus,
@@ -215,6 +216,9 @@ export default function OrdersPage() {
 
       if (error) throw error;
 
+      // Create notification
+      await safeCreateNotification(NotificationTemplates.orderUpdated(orderId, newStatus))
+
       // تحديث الحالة محلياً
       setOrders((prev) =>
         prev.map((order) =>
@@ -245,6 +249,9 @@ export default function OrdersPage() {
         .eq("id", orderId);
 
       if (error) throw error;
+
+      // Create notification
+      await safeCreateNotification(NotificationTemplates.orderDeleted(orderId))
 
       // إزالة الطلب من القائمة محلياً
       setOrders((prev) => prev.filter((order) => order.id !== orderId));
@@ -359,7 +366,6 @@ export default function OrdersPage() {
         </div>
         <div className="flex items-center space-x-3">
           <Badge variant="secondary">{filteredOrders.length} orders</Badge>
-          
         </div>
       </div>
 

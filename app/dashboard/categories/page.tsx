@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import type { Category } from "@/types/database";
+import { safeCreateNotification, NotificationTemplates } from "@/lib/notifications";
 import {
   Search,
   Plus,
@@ -130,6 +131,10 @@ export default function CategoriesPage() {
     }
 
     try {
+      // Get category name before deletion
+      const categoryToDelete = categories.find(cat => cat.id === categoryId);
+      const categoryName = categoryToDelete?.name || "Unknown Category";
+
       const { error } = await supabase
         .from("categories")
         .delete()
@@ -139,6 +144,9 @@ export default function CategoriesPage() {
         console.error("Delete error:", error);
         throw error;
       }
+
+      // Create notification
+      await safeCreateNotification(NotificationTemplates.categoryDeleted(categoryName))
 
       // إزالة الفئة من القائمة محلياً
       setCategories((prev) =>
@@ -184,6 +192,7 @@ export default function CategoriesPage() {
             <h1 className="text-2xl font-bold text-foreground">Categories</h1>
             <p className="text-muted-foreground">Manage your product categories</p>
           </div>
+
         </div>
 
         <div className="bg-destructive/10 border border-destructive rounded-lg p-4">

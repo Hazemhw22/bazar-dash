@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import type { Product } from "@/types/database";
+import { safeCreateNotification, NotificationTemplates } from "@/lib/notifications";
 import {
   Search,
   Plus,
@@ -140,12 +141,22 @@ export default function ProductsPage() {
     currentStatus: boolean
   ) => {
     try {
+      const product = products.find(p => p.id === productId);
+      const productName = product?.name || "Unknown Product";
+
       const { error } = await supabase
         .from("products")
         .update({ is_active: !currentStatus })
         .eq("id", productId);
 
       if (error) throw error;
+
+      // Create notification
+      if (!currentStatus) {
+        await safeCreateNotification(NotificationTemplates.statusActivated("Product", productName))
+      } else {
+        await safeCreateNotification(NotificationTemplates.statusDeactivated("Product", productName))
+      }
 
       // تحديث الحالة محلياً
       setProducts((prev) =>
@@ -173,12 +184,19 @@ export default function ProductsPage() {
     }
 
     try {
+      // Get product name before deletion
+      const productToDelete = products.find(prod => prod.id === productId);
+      const productName = productToDelete?.name || "Unknown Product";
+
       const { error } = await supabase
         .from("products")
         .delete()
         .eq("id", productId);
 
       if (error) throw error;
+
+      // Create notification
+      await safeCreateNotification(NotificationTemplates.productDeleted(productName))
 
       // إزالة المنتج من القائمة محلياً
       setProducts((prev) => prev.filter((product) => product.id !== productId));

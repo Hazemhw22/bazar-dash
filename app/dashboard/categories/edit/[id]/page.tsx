@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import { ArrowLeft, Save, Upload } from "lucide-react";
+import { safeCreateNotification, NotificationTemplates } from "@/lib/notifications";
 
 export default function EditCategoryPage() {
   const router = useRouter();
@@ -114,6 +115,10 @@ export default function EditCategoryPage() {
         })
         .eq("id", categoryId);
       if (error) throw error;
+      
+      // Create notification
+      await safeCreateNotification(NotificationTemplates.categoryUpdated(name.trim()));
+      
       alert("Category updated successfully!");
       router.push(`/dashboard/categories`);
     } catch (err: any) {

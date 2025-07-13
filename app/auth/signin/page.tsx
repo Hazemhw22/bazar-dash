@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { supabase } from "@/lib/supabase"
 import { Eye, EyeOff, Mail, Lock } from "lucide-react"
+import { safeCreateNotification, NotificationTemplates } from "@/lib/notifications"
 
 export default function SignIn() {
   const [email, setEmail] = useState("")
@@ -35,6 +36,8 @@ export default function SignIn() {
       if (error) {
         setError(error.message)
       } else {
+        // Create notification for successful signin
+        await safeCreateNotification(NotificationTemplates.signInSuccess(email))
         router.push("/dashboard")
       }
     } catch (err) {

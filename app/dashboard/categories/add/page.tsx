@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
 import type { Category, CategoryInsert } from "@/types/database";
 import { ArrowLeft, Layers, Upload, Save } from "lucide-react";
+import { safeCreateNotification, NotificationTemplates } from "@/lib/notifications";
 
 export default function AddCategoryPage() {
   const router = useRouter();
@@ -143,6 +144,10 @@ export default function AddCategoryPage() {
       }
 
       console.log("Category created successfully:", data);
+      
+      // Create notification
+      await safeCreateNotification(NotificationTemplates.categoryCreated(name.trim()));
+      
       alert("Category added successfully!");
       router.push("/dashboard/categories");
     } catch (error) {

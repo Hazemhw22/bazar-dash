@@ -376,9 +376,11 @@ export default function AnalyticsPage() {
           <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
           <p className="text-muted-foreground">View your platform analytics and insights</p>
         </div>
-        <Button onClick={fetchAnalytics} variant="outline">
-          Refresh Data
-        </Button>
+        <div className="flex items-center space-x-3">
+          <Button onClick={fetchAnalytics} variant="outline">
+            Refresh Data
+          </Button>
+        </div>
       </div>
 
       {/* Main Stats */}

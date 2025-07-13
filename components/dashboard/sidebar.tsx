@@ -25,6 +25,7 @@ import { supabase } from "@/lib/supabase";
 
 const adminMainNavigation = [
   { name: "Home", href: "/dashboard", icon: Home },
+  { name: "Homepage Control", href: "/dashboard/homepage", icon: Home },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Shops", href: "/dashboard/shops", icon: Store },
   { name: "Products", href: "/dashboard/products", icon: Package },
@@ -46,6 +47,7 @@ const adminSettingsNavigation = [
 
 const customerNavigation = [
   { name: "Home", href: "/dashboard", icon: Home },
+  { name: "Homepage Control", href: "/dashboard/homepage", icon: Home },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Shops", href: "/dashboard/shops", icon: Store },
   { name: "Products", href: "/dashboard/products", icon: Package },
@@ -56,6 +58,7 @@ const customerNavigation = [
 
 const vendorNavigation = [
   { name: "Home", href: "/dashboard", icon: Home },
+  { name: "Homepage Control", href: "/dashboard/homepage", icon: Home },
   { name: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { name: "Products", href: "/dashboard/products", icon: Package },
   { name: "Orders", href: "/dashboard/orders", icon: ShoppingCart },

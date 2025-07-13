@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import type { Shop, WorkingHours } from "@/types/database";
+import { safeCreateNotification, NotificationTemplates } from "@/lib/notifications";
 import {
   Search,
   Plus,
@@ -223,6 +224,15 @@ export default function ShopsPage() {
 
       if (error) throw error;
 
+      // Create notification
+      const shop = shops.find(s => s.id === shopId);
+      const shopName = shop?.name || "Unknown Shop";
+      if (!currentStatus) {
+        await safeCreateNotification(NotificationTemplates.statusActivated("Shop", shopName))
+      } else {
+        await safeCreateNotification(NotificationTemplates.statusDeactivated("Shop", shopName))
+      }
+
       // تحديث الحالة محلياً
       setShops((prev) =>
         prev.map((shop) =>
@@ -247,9 +257,16 @@ export default function ShopsPage() {
     }
 
     try {
+      // Get shop name before deletion
+      const shopToDelete = shops.find(shop => shop.id === shopId);
+      const shopName = shopToDelete?.name || "Unknown Shop";
+
       const { error } = await supabase.from("shops").delete().eq("id", shopId);
 
       if (error) throw error;
+
+      // Create notification
+      await safeCreateNotification(NotificationTemplates.shopDeleted(shopName))
 
       // إزالة المتجر من القائمة محلياً
       setShops((prev) => prev.filter((shop) => shop.id !== shopId));

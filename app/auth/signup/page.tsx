@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { supabase } from "@/lib/supabase"
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react"
+import { safeCreateNotification, NotificationTemplates } from "@/lib/notifications"
 
 export default function SignUp() {
   const [name, setName] = useState("")
@@ -44,8 +45,10 @@ export default function SignUp() {
         return
       }
 
-        // Create profile
-        if (data.user) {
+      // Create profile
+      if (data.user) {
+        // Create notification for successful signup
+        await safeCreateNotification(NotificationTemplates.signUpSuccess(email))
         console.log("🔍 Debug: isAdmin state =", isAdmin)
         console.log("🔍 Debug: Checkbox value =", isAdmin)
         
