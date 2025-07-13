@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/lib/supabase";
 import { ArrowLeft, Save, Upload, ImageIcon, X } from "lucide-react";
-import { useNotifications } from "@/components/notifications/NotificationProvider";
+import { useNotifications } from "@/hooks/useNotifications";
 
 export default function EditProductPage() {
   const router = useRouter();
@@ -57,7 +57,7 @@ export default function EditProductPage() {
   const [propertyTitle, setPropertyTitle] = useState("");
   const [propertyOptions, setPropertyOptions] = useState<string[]>([""]);
 
-  const { notify } = useNotifications();
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
     fetchProduct();
@@ -207,20 +207,26 @@ export default function EditProductPage() {
         .update(productData)
         .eq("id", productId);
       if (error) {
-        notify({ type: "error", message: error.message || "Error updating product." });
+        addNotification({ type: "error", title: "Error", message: error.message || "Error updating product." });
         throw error;
       }
-      notify({ type: "success", message: "Product updated successfully!" });
+      addNotification({ type: "success", title: "Success", message: "Product updated successfully!" });
       router.push(`/dashboard/products`);
     } catch (err: any) {
       setError(err.message || "Unknown error");
-      notify({ type: "error", message: err.message || "Unknown error" });
+              addNotification({ type: "error", title: "Error", message: err.message || "Unknown error" });
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
 
   return (

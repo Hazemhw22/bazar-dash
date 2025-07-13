@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabase";
-import { useNotifications } from "@/components/notifications/NotificationProvider";
+import { useNotifications } from "@/hooks/useNotifications";
 import { UserRole } from "@/types/database";
 import { Users, Shield, UserPlus, Search } from "lucide-react";
 
@@ -36,7 +36,7 @@ interface Profile {
 }
 
 export default function AdminManagementPage() {
-  const { notify } = useNotifications();
+  const { addNotification } = useNotifications();
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,7 +82,7 @@ export default function AdminManagementPage() {
       setUsers(data || []);
     } catch (error) {
       console.error("Error fetching users:", error);
-      notify({ type: "error", message: "Failed to fetch users" });
+      addNotification({ type: "error", title: "Error", message: "Failed to fetch users" });
     } finally {
       setLoading(false);
     }
@@ -98,12 +98,12 @@ export default function AdminManagementPage() {
 
       if (error) throw error;
 
-      notify({ type: "success", message: "User role updated successfully" });
+      addNotification({ type: "success", title: "Success", message: "User role updated successfully" });
       fetchUsers();
       setSelectedUser(null);
     } catch (error) {
       console.error("Error updating user role:", error);
-      notify({ type: "error", message: "Failed to update user role" });
+      addNotification({ type: "error", title: "Error", message: "Failed to update user role" });
     } finally {
       setUpdating(false);
     }
@@ -196,7 +196,9 @@ export default function AdminManagementPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">Loading users...</div>
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
           ) : (
             <Table>
               <TableHeader>

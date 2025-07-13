@@ -30,7 +30,8 @@ import {
   Copy,
   Save,
 } from "lucide-react";
-import { useNotifications } from "@/components/notifications/NotificationProvider";
+import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationTemplates } from "@/lib/notifications";
 
 const DAYS_OF_WEEK = [
   "Monday",
@@ -60,7 +61,7 @@ export default function AddShopPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [ownerName, setOwnerName] = useState<string>("");
-  const { notify } = useNotifications();
+  const { addNotification } = useNotifications();
 
   // Form states
   const [name, setName] = useState("");
@@ -293,15 +294,15 @@ export default function AddShopPage() {
         .select();
 
       if (error) {
-        notify({ type: "error", message: error.message || "Error adding shop." });
+        addNotification(NotificationTemplates.systemError(error.message || "Error adding shop."));
         throw error;
       }
 
-      notify({ type: "success", message: "Shop added successfully!" });
+      addNotification(NotificationTemplates.shopCreated(name.trim()));
       router.push("/dashboard/shops");
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
-      notify({ type: "error", message: errorMessage });
+      addNotification(NotificationTemplates.systemError(errorMessage));
     } finally {
       setLoading(false);
     }

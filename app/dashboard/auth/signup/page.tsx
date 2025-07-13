@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { supabase } from "@/lib/supabase"
 import { Eye, EyeOff, Mail, Lock, User, Building } from "lucide-react"
-import { useNotifications } from "@/components/notifications/NotificationProvider"
+import { useNotifications } from "@/hooks/useNotifications"
+import { NotificationTemplates } from "@/lib/notifications"
 
 export default function SignUp() {
   const [fullName, setFullName] = useState("")
@@ -23,7 +24,7 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
-  const { notify } = useNotifications()
+  const { addNotification } = useNotifications()
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -33,7 +34,7 @@ export default function SignUp() {
     // Validate passwords match
     if (password !== confirmPassword) {
       setError("Passwords do not match")
-      notify({ type: "error", message: "Passwords do not match" })
+      addNotification(NotificationTemplates.validationError("password confirmation"))
       setLoading(false)
       return
     }
@@ -41,7 +42,7 @@ export default function SignUp() {
     // Validate password strength
     if (password.length < 6) {
       setError("Password must be at least 6 characters long")
-      notify({ type: "error", message: "Password must be at least 6 characters long" })
+      addNotification(NotificationTemplates.validationError("password"))
       setLoading(false)
       return
     }
@@ -60,15 +61,15 @@ export default function SignUp() {
 
       if (error) {
         setError(error.message)
-        notify({ type: "error", message: error.message || "Signup failed." })
+        addNotification(NotificationTemplates.authError(error.message || "Signup failed."))
       } else {
-        notify({ type: "success", message: "Account created! Please check your email to verify." })
+        addNotification(NotificationTemplates.signUpSuccess(email))
         router.push("/auth/signin")
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred"
       setError(errorMessage)
-      notify({ type: "error", message: errorMessage })
+      addNotification(NotificationTemplates.systemError(errorMessage))
     } finally {
       setLoading(false)
     }

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { supabase } from "@/lib/supabase"
 import { Eye, EyeOff, Mail, Lock } from "lucide-react"
-import { useNotifications } from "@/components/notifications/NotificationProvider"
+import { useNotifications } from "@/hooks/useNotifications"
 
 export default function SignIn() {
   const [email, setEmail] = useState("")
@@ -20,7 +20,7 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
-  const { notify } = useNotifications()
+  const { addNotification } = useNotifications()
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,15 +35,15 @@ export default function SignIn() {
 
       if (error) {
         setError(error.message)
-        notify({ type: "error", message: error.message || "Login failed." })
+        addNotification({ type: "error", title: "Error", message: error.message || "Login failed." })
       } else {
-        notify({ type: "success", message: "Welcome back!" })
+        addNotification({ type: "success", title: "Success", message: "Welcome back!" })
         router.push("/dashboard")
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred"
       setError(errorMessage)
-      notify({ type: "error", message: errorMessage })
+      addNotification({ type: "error", title: "Error", message: errorMessage })
     } finally {
       setLoading(false)
     }

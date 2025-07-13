@@ -15,7 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabase";
 import { Search, Bell, Settings, LogOut, UserIcon, CheckCircle, XCircle, Info, AlertTriangle, Sun, Moon } from "lucide-react";
-import { useNotifications } from "@/components/notifications/NotificationProvider";
+import { useNotifications } from "@/hooks/useNotifications";
 import { useTheme } from "next-themes";
 
 interface DashboardHeaderProps {
@@ -45,8 +45,7 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
   const router = useRouter();
-  const { notifications, markAllRead, remove } = useNotifications();
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const { notifications, markAllAsRead, markAsRead, removeNotification, unreadCount } = useNotifications();
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
@@ -148,81 +147,86 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
           </Button>
 
           {/* Notifications */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative text-foreground"
-            onClick={() => {
-              setOpen((v) => !v);
-              markAllRead();
-            }}
+          <DropdownMenu
+            open={open}
+            onOpenChange={setOpen}
           >
-            <Bell className="h-5 w-5" />
-            {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                {unreadCount}
-            </span>
-            )}
-          </Button>
-          {open && (
-            <div
-              ref={dropdownRef}
-              className="absolute right-0 top-full mt-2 w-96 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden text-foreground"
-              style={{ minWidth: 320 }}
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative"
+              >
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-xs flex items-center justify-center text-white animate-pulse">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+                <span className="sr-only">Notifications</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              className="w-80 p-0 border-0 shadow-2xl bg-white dark:bg-gray-900"
+              align="end"
             >
-              <div className="flex items-center justify-between p-4 border-b border-border font-semibold bg-muted">
-                <span className="text-foreground">Notifications</span>
-                <button
-                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                  onClick={markAllRead}
-                >
-                  Mark all read
-                </button>
-              </div>
-              <div className="max-h-96 overflow-y-auto divide-y divide-border">
-                {notifications.length === 0 ? (
-                  <div className="p-6 text-muted-foreground text-center text-sm">No notifications</div>
-                ) : (
-                  notifications.slice(0, 10).map((n) => {
-                    const style = typeStyles[n.type] || typeStyles.info;
-                    return (
-                      <div
-                        key={n.id}
-                        className={`flex items-start space-x-3 p-4 rounded-lg ${style.bg} hover:bg-muted transition`}
-                      >
-                        <div className="mt-1">{style.icon}</div>
-                        <div className="flex-1">
-                          <div className="font-semibold text-foreground">{n.title || n.type}</div>
-                          <div className="text-xs text-foreground">{n.message}</div>
-                          <div className="text-xs text-muted-foreground">{new Date(n.createdAt).toLocaleTimeString()}</div>
-                        </div>
-                        {!n.read && (
-                          <span className="w-2 h-2 bg-blue-500 rounded-full mt-2" title="Unread"></span>
-                        )}
-                        <button
-                          className="ml-2 text-muted-foreground hover:text-red-500"
-                          onClick={() => remove(n.id)}
-                          title="Delete"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    );
-                  })
+              <div className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white p-4 rounded-t-lg flex items-center justify-between">
+                <h3 className="font-semibold">Notifications</h3>
+                {unreadCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={markAllAsRead}
+                    className="text-white hover:bg-white/20 text-xs"
+                  >
+                    Mark all as read
+                  </Button>
                 )}
               </div>
-              {notifications.length > 0 && (
-                <div className="p-2 text-center bg-muted">
-                  <button
-                    className="text-xs text-red-500 hover:underline"
-                    onClick={() => notifications.forEach((n) => remove(n.id))}
-                  >
-                    Clear all
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+              <div className="max-h-96 overflow-y-auto">
+                {notifications.length === 0 ? (
+                  <div className="p-6 text-center text-gray-500 dark:text-gray-300">
+                    <Bell className="h-12 w-12 mx-auto mb-2 text-gray-300 dark:text-gray-500" />
+                    <p>No notifications</p>
+                  </div>
+                ) : (
+                  notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      onClick={() => markAsRead(notification.id)}
+                      className={`p-4 border-b border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 ${
+                        notification.is_read !== true
+                          ? "bg-blue-50/50 dark:bg-blue-900/30"
+                          : ""
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-cyan-600 flex items-center justify-center text-white text-sm">
+                          <Bell className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium text-gray-900 dark:text-white truncate">
+                              Notification
+                            </h4>
+                            {notification.is_read !== true && (
+                              <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-full animate-pulse"></div>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-400 mt-2">
+                            {new Date(notification.created_at).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {/* User menu */}
           <DropdownMenu>

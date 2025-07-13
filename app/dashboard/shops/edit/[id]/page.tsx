@@ -28,7 +28,7 @@ import {
   Copy,
   Save,
 } from "lucide-react";
-import { useNotifications } from "@/components/notifications/NotificationProvider";
+import { useNotifications } from "@/hooks/useNotifications";
 
 const DAYS_OF_WEEK = [
   "Monday",
@@ -77,7 +77,7 @@ export default function EditShopPage() {
   const [workingHours, setWorkingHours] = useState<WorkingHours[]>([]);
   const [ownerName, setOwnerName] = useState<string>("");
   const [uploadingImage, setUploadingImage] = useState(false);
-  const { notify } = useNotifications();
+  const { addNotification } = useNotifications();
 
   useEffect(() => {
     fetchShop();
@@ -240,20 +240,26 @@ export default function EditShopPage() {
         })
         .eq("id", shopId);
       if (error) {
-        notify({ type: "error", message: error.message || "Error updating shop." });
+        addNotification({ type: "error", title: "Error", message: error.message || "Error updating shop." });
         throw error;
       }
-      notify({ type: "success", message: "Shop updated successfully!" });
+      addNotification({ type: "success", title: "Success", message: "Shop updated successfully!" });
       router.push(`/dashboard/shops/${shopId}`);
     } catch (err: any) {
       setError(err.message || "Unknown error");
-      notify({ type: "error", message: err.message || "Unknown error" });
+              addNotification({ type: "error", title: "Error", message: err.message || "Unknown error" });
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
 
   return (

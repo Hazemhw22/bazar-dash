@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
+
 export default function UserDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -39,7 +40,13 @@ export default function UserDetailsPage() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
   if (!user) return <div className="p-8 text-center">User not found</div>;
 

@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { supabase } from "@/lib/supabase"
 import { User, Mail, Phone, MapPin, Upload, Save, ShoppingBag, LogOut, Heart, Package } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
-import { useNotifications } from "@/components/notifications/NotificationProvider"
+import { useNotifications } from "@/hooks/useNotifications"
 import { UserRole } from "@/types/database"
 
 interface Profile {
@@ -33,7 +33,7 @@ export default function CustomerSettingsPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [currentUserRole, setCurrentUserRole] = useState<UserRole | null>(null)
-  const { notify } = useNotifications()
+  const { addNotification } = useNotifications()
 
   // Form states
   const [fullName, setFullName] = useState("")
@@ -120,13 +120,13 @@ export default function CustomerSettingsPage() {
       setUploadingAvatar(true)
       
       if (!file || file.size === 0) {
-        notify({ type: "error", message: "Invalid file selected." })
+        addNotification({ type: "error", title: "Error", message: "Invalid file selected." })
         setUploadingAvatar(false)
         return null
       }
 
       if (file.size > 2 * 1024 * 1024) {
-        notify({ type: "error", message: "File size must be less than 2MB." })
+        addNotification({ type: "error", title: "Error", message: "File size must be less than 2MB." })
         setUploadingAvatar(false)
         return null
       }
@@ -142,13 +142,13 @@ export default function CustomerSettingsPage() {
 
       if (error) {
         console.error("Upload failed:", error)
-        notify({ type: "error", message: `Upload failed: ${error.message}` })
+        addNotification({ type: "error", title: "Error", message: `Upload failed: ${error.message}` })
         setUploadingAvatar(false)
         return null
       }
 
       if (!data?.path) {
-        notify({ type: "error", message: "Upload failed: No file path returned" })
+        addNotification({ type: "error", title: "Error", message: "Upload failed: No file path returned" })
         setUploadingAvatar(false)
         return null
       }
@@ -162,7 +162,7 @@ export default function CustomerSettingsPage() {
       
     } catch (error) {
       console.error("Upload exception:", error)
-      notify({ type: "error", message: "Upload failed due to network error" })
+      addNotification({ type: "error", title: "Error", message: "Upload failed due to network error" })
       setUploadingAvatar(false)
       return null
     }
@@ -182,7 +182,7 @@ export default function CustomerSettingsPage() {
     setLoading(true)
     try {
       if (!user) {
-        notify({ type: "error", message: "User not authenticated" })
+        addNotification({ type: "error", title: "Error", message: "User not authenticated" })
         setLoading(false)
         return
       }
@@ -208,7 +208,7 @@ export default function CustomerSettingsPage() {
       })
       
       if (profileError) {
-        notify({ type: "error", message: profileError.message || "Error updating profile." })
+        addNotification({ type: "error", title: "Error", message: profileError.message || "Error updating profile." })
         setLoading(false)
         return
       }
@@ -223,10 +223,10 @@ export default function CustomerSettingsPage() {
         console.error("Error updating user metadata:", metadataError)
       }
 
-      notify({ type: "success", message: "Profile updated successfully!" })
+      addNotification({ type: "success", title: "Success", message: "Profile updated successfully!" })
       getCurrentUser()
     } catch (error) {
-      notify({ type: "error", message: "Error updating profile. Please try again." })
+      addNotification({ type: "error", title: "Error", message: "Error updating profile. Please try again." })
     } finally {
       setLoading(false)
     }

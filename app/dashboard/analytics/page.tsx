@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase"
 import { TrendingUp, TrendingDown, Users, ShoppingCart, Package, Store, DollarSign, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+
 interface AnalyticsData {
   totalProducts: number
   totalOrders: number
@@ -279,10 +280,24 @@ export default function AnalyticsPage() {
         return;
       }
     } catch (error) {
-      console.error("Error fetching analytics:", error)
-      setError(error instanceof Error ? error.message : "Unknown error occurred")
+      console.error("Error fetching analytics:", error);
+      // Set empty analytics instead of showing error
+      setAnalytics({
+        totalProducts: 0,
+        totalOrders: 0,
+        totalRevenue: 0,
+        activeProducts: 0,
+        pendingOrders: 0,
+        completedOrders: 0,
+        averageOrderValue: 0,
+        recentGrowth: {
+          products: 0,
+          orders: 0,
+          revenue: 0,
+        },
+      });
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -309,8 +324,8 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }

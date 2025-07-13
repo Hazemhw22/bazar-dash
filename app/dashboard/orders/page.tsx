@@ -30,6 +30,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 
+
 interface OrderWithDetails extends Order {
   customer_name?: string;
   items_count?: number;
@@ -73,7 +74,10 @@ export default function OrdersPage() {
           .order("created_at", { ascending: false });
         if (ordersError) {
           console.error("Orders query failed:", ordersError);
-          throw ordersError;
+          // Set empty orders instead of throwing error
+          setOrders([]);
+          setLoading(false);
+          return;
         }
         const ordersWithDetails = ordersData?.map((order) => ({
           ...order,
@@ -132,7 +136,10 @@ export default function OrdersPage() {
           .in("product_id", storeProductIds);
         if (orderItemsError) {
           console.error("Order items error:", orderItemsError);
-          throw orderItemsError;
+          // Set empty orders instead of throwing error
+          setOrders([]);
+          setLoading(false);
+          return;
         }
         // Get unique orders and their details
         const uniqueOrders = new Map();
@@ -192,9 +199,8 @@ export default function OrdersPage() {
       return;
     } catch (error) {
       console.error("Error fetching orders:", error);
-      setError(
-        error instanceof Error ? error.message : "Unknown error occurred"
-      );
+      // Set empty orders instead of showing error
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -305,8 +311,8 @@ export default function OrdersPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }

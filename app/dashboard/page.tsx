@@ -21,6 +21,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartLegend, ChartLegendContent } from "@/components/ui/chart";
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 
+
 interface DashboardStats {
   totalProducts: number;
   totalOrders: number;
@@ -486,9 +487,19 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error("Error fetching dashboard stats:", error);
-      setError(
-        error instanceof Error ? error.message : "Unknown error occurred"
-      );
+      // Set empty stats instead of showing error
+      setStats({
+        totalProducts: 0,
+        totalOrders: 0,
+        totalRevenue: 0,
+        pendingOrders: 0,
+        completedOrders: 0,
+        totalStores: 0,
+        totalCategories: 0,
+        recentOrders: [],
+        recentProducts: [],
+        storeInfo: null,
+      });
     } finally {
       setLoading(false);
     }
@@ -554,8 +565,8 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }

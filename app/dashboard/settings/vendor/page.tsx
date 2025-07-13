@@ -19,7 +19,7 @@ import {
 import { supabase } from "@/lib/supabase"
 import { User, Mail, Phone, MapPin, Upload, Save, Store, LogOut, Clock, Copy, ImageIcon, Package, BarChart3 } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
-import { useNotifications } from "@/components/notifications/NotificationProvider"
+import { useNotifications } from "@/hooks/useNotifications"
 import { UserRole, WorkingHours } from "@/types/database"
 
 interface Profile {
@@ -84,7 +84,7 @@ export default function VendorSettingsPage() {
   const [shop, setShop] = useState<Shop | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [currentUserRole, setCurrentUserRole] = useState<UserRole | null>(null)
-  const { notify } = useNotifications()
+  const { addNotification } = useNotifications()
 
   // Profile form states
   const [fullName, setFullName] = useState("")
@@ -254,7 +254,7 @@ export default function VendorSettingsPage() {
 
       if (error) {
         console.error("Upload failed:", error)
-        notify({ type: "error", message: `Upload failed: ${error.message}` })
+        addNotification({ type: "error", title: "Error", message: `Upload failed: ${error.message}` })
         setUploadingImage(false)
         return null
       }
@@ -267,7 +267,7 @@ export default function VendorSettingsPage() {
       return urlData.publicUrl
     } catch (error) {
       console.error("Upload exception:", error)
-      notify({ type: "error", message: "Upload failed due to network error" })
+      addNotification({ type: "error", title: "Error", message: "Upload failed due to network error" })
       setUploadingImage(false)
       return null
     }
@@ -278,13 +278,13 @@ export default function VendorSettingsPage() {
       setUploadingImage(true)
       
       if (!file || file.size === 0) {
-        notify({ type: "error", message: "Invalid file selected." })
+        addNotification({ type: "error", title: "Error", message: "Invalid file selected." })
         setUploadingImage(false)
         return null
       }
 
       if (file.size > 2 * 1024 * 1024) {
-        notify({ type: "error", message: "File size must be less than 2MB." })
+        addNotification({ type: "error", title: "Error", message: "File size must be less than 2MB." })
         setUploadingImage(false)
         return null
       }
@@ -300,7 +300,7 @@ export default function VendorSettingsPage() {
 
       if (error) {
         console.error("Upload failed:", error)
-        notify({ type: "error", message: `Upload failed: ${error.message}` })
+        addNotification({ type: "error", title: "Error", message: `Upload failed: ${error.message}` })
         setUploadingImage(false)
         return null
       }
@@ -314,7 +314,7 @@ export default function VendorSettingsPage() {
       
     } catch (error) {
       console.error("Upload exception:", error)
-      notify({ type: "error", message: "Upload failed due to network error" })
+      addNotification({ type: "error", title: "Error", message: "Upload failed due to network error" })
       setUploadingImage(false)
       return null
     }
@@ -371,7 +371,7 @@ export default function VendorSettingsPage() {
     setLoading(true)
     try {
       if (!user) {
-        notify({ type: "error", message: "User not authenticated" })
+        addNotification({ type: "error", title: "Error", message: "User not authenticated" })
         setLoading(false)
         return
       }
@@ -397,15 +397,15 @@ export default function VendorSettingsPage() {
       })
       
       if (profileError) {
-        notify({ type: "error", message: profileError.message || "Error updating profile." })
+        addNotification({ type: "error", title: "Error", message: profileError.message || "Error updating profile." })
         setLoading(false)
         return
       }
 
-      notify({ type: "success", message: "Profile updated successfully!" })
+      addNotification({ type: "success", title: "Success", message: "Profile updated successfully!" })
       getCurrentUser()
     } catch (error) {
-      notify({ type: "error", message: "Error updating profile. Please try again." })
+      addNotification({ type: "error", title: "Error", message: "Error updating profile. Please try again." })
     } finally {
       setLoading(false)
     }
@@ -416,7 +416,7 @@ export default function VendorSettingsPage() {
     setSaving(true)
     try {
       if (!user || !shop) {
-        notify({ type: "error", message: "User or shop not found" })
+        addNotification({ type: "error", title: "Error", message: "User or shop not found" })
         setSaving(false)
         return
       }
@@ -455,15 +455,15 @@ export default function VendorSettingsPage() {
         .eq("id", shop.id)
 
       if (error) {
-        notify({ type: "error", message: error.message || "Error updating shop." })
+        addNotification({ type: "error", title: "Error", message: error.message || "Error updating shop." })
         setSaving(false)
         return
       }
 
-      notify({ type: "success", message: "Shop updated successfully!" })
+      addNotification({ type: "success", title: "Success", message: "Shop updated successfully!" })
       getCurrentUser()
     } catch (error) {
-      notify({ type: "error", message: "Error updating shop. Please try again." })
+      addNotification({ type: "error", title: "Error", message: "Error updating shop. Please try again." })
     } finally {
       setSaving(false)
     }

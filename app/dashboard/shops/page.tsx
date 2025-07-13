@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+
 interface ShopWithDetails extends Shop {
   owner_name?: string;
   products_count?: number;
@@ -286,8 +287,8 @@ export default function ShopsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8"></div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }

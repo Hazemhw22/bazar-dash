@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select"
 import { supabase } from "@/lib/supabase"
 import { Eye, EyeOff, Mail, Lock, User, Store, Clock, MapPin, Phone, Upload, Save } from "lucide-react"
-import { useNotifications } from "@/components/notifications/NotificationProvider"
+import { useNotifications } from "@/hooks/useNotifications"
 import type { WorkingHours } from "@/types/database"
 
 const DAYS_OF_WEEK = [
@@ -51,7 +51,7 @@ export default function StoreOwnerSignUp() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
-  const { notify } = useNotifications()
+  const { addNotification } = useNotifications()
 
   // User account fields
   const [fullName, setFullName] = useState("")
@@ -155,7 +155,7 @@ export default function StoreOwnerSignUp() {
         return
       }
 
-      notify({ type: "success", message: "Store owner account created successfully! Please check your email to confirm your account." })
+      addNotification({ type: "success", title: "Success", message: "Store owner account created successfully! Please check your email to confirm your account." })
       router.push("/auth/signin?message=Check your email to confirm your account")
     } catch (err) {
       setError("An unexpected error occurred")

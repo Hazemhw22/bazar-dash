@@ -11,7 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { supabase } from "@/lib/supabase"
 import { User, Mail, Phone, MapPin, Upload, Save, AlertCircle, Store } from "lucide-react"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
-import { useNotifications } from "@/components/notifications/NotificationProvider";
+import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationTemplates } from "@/lib/notifications";
 
 interface Profile {
   id: string
@@ -31,7 +32,7 @@ export default function SettingsPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null)
-  const { notify } = useNotifications();
+  const { addNotification } = useNotifications();
 
   // Form states
   const [fullName, setFullName] = useState("")
@@ -77,10 +78,7 @@ export default function SettingsPage() {
       
       if (authError) {
         console.error("Auth test failed:", authError);
-        notify({ 
-          type: "warning", 
-          message: "Authentication issue. Please sign in again." 
-        });
+        addNotification(NotificationTemplates.systemWarning("Authentication issue. Please sign in again."));
         return;
       }
       
@@ -94,15 +92,9 @@ export default function SettingsPage() {
       if (error) {
         console.error("Storage bucket test failed:", error);
         if (error.message.includes("bucket")) {
-          notify({ 
-            type: "warning", 
-            message: "Storage bucket 'user-avatars' not found. Please create it in your Supabase dashboard." 
-          });
+          addNotification(NotificationTemplates.systemWarning("Storage bucket 'user-avatars' not found. Please create it in your Supabase dashboard."));
         } else {
-          notify({ 
-            type: "warning", 
-            message: "Storage bucket not accessible. Please check bucket permissions." 
-          });
+                      addNotification(NotificationTemplates.systemWarning("Storage bucket not accessible. Please check bucket permissions."));
         }
       } else {
         console.log("Storage bucket test successful");
@@ -166,13 +158,13 @@ export default function SettingsPage() {
       
       // Basic validation
       if (!file || file.size === 0) {
-        notify({ type: "error", message: "Invalid file selected." });
+        addNotification({ type: "error", title: "Error", message: "Invalid file selected." });
         setUploadingAvatar(false);
         return null;
       }
 
       if (file.size > 2 * 1024 * 1024) {
-        notify({ type: "error", message: "File size must be less than 2MB." });
+        addNotification({ type: "error", title: "Error", message: "File size must be less than 2MB." });
         setUploadingAvatar(false);
         return null;
       }
@@ -195,14 +187,14 @@ export default function SettingsPage() {
       
       if (error) {
         console.error("Upload failed:", error);
-        notify({ type: "error", message: `Upload failed: ${error.message}` });
+        addNotification({ type: "error", title: "Error", message: `Upload failed: ${error.message}` });
         setUploadingAvatar(false);
         return null;
       }
 
       if (!data?.path) {
         console.error("No path returned from upload");
-        notify({ type: "error", message: "Upload failed: No file path returned" });
+        addNotification({ type: "error", title: "Error", message: "Upload failed: No file path returned" });
         setUploadingAvatar(false);
         return null;
       }
@@ -218,7 +210,7 @@ export default function SettingsPage() {
       
     } catch (error) {
       console.error("Upload exception:", error);
-      notify({ type: "error", message: "Upload failed due to network error" });
+      addNotification({ type: "error", title: "Error", message: "Upload failed due to network error" });
       setUploadingAvatar(false);
       return null;
     }
@@ -251,7 +243,7 @@ export default function SettingsPage() {
         }
       }
       
-      notify({ type: "success", message: "Avatar uploaded successfully!" });
+      addNotification({ type: "success", title: "Success", message: "Avatar uploaded successfully!" });
     }
     setUploadingAvatar(false);
   };
@@ -261,7 +253,7 @@ export default function SettingsPage() {
     setLoading(true);
     try {
       if (!user) {
-        notify({ type: "error", message: "User not authenticated" });
+        addNotification({ type: "error", title: "Error", message: "User not authenticated" });
         setLoading(false);
         return;
       }
@@ -288,7 +280,7 @@ export default function SettingsPage() {
       });
       
       if (profileError) {
-        notify({ type: "error", message: profileError.message || "Error updating profile." });
+        addNotification({ type: "error", title: "Error", message: profileError.message || "Error updating profile." });
         setLoading(false);
         return;
       }
@@ -305,10 +297,10 @@ export default function SettingsPage() {
         // Don't fail the entire operation for metadata update errors
       }
 
-      notify({ type: "success", message: "Profile updated successfully!" });
+      addNotification({ type: "success", title: "Success", message: "Profile updated successfully!" });
       getCurrentUser();
     } catch (error) {
-      notify({ type: "error", message: "Error updating profile. Please try again." });
+      addNotification({ type: "error", title: "Error", message: "Error updating profile. Please try again." });
     } finally {
       setLoading(false);
     }

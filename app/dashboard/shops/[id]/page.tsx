@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Edit } from "lucide-react";
 
+
 export default function ShopDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -38,7 +39,13 @@ export default function ShopDetailsPage() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
   if (error) return <div className="p-8 text-center text-red-600">{error}</div>;
   if (!shop) return <div className="p-8 text-center">Shop not found</div>;
 
