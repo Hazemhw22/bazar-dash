@@ -12,6 +12,8 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { Plus, Edit, Trash2, Store, Package, Tag } from "lucide-react";
 import { safeCreateNotification, NotificationTemplates } from "@/lib/notifications";
+import { UserRole } from "@/types/database";
+import { Shield } from "lucide-react";
 
 // Types
 interface Offer {
@@ -51,8 +53,10 @@ export default function HomepageControlPage() {
   const [addStoresDialogOpen, setAddStoresDialogOpen] = useState(false);
   const [storeSearch, setStoreSearch] = useState("");
 
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
+
   // Fetch data
-  useEffect(() => { fetchAll(); }, []);
   async function fetchAll() {
     setLoading(true);
     try {
@@ -167,6 +171,30 @@ export default function HomepageControlPage() {
       setLoading(false);
     }
   }
+  useEffect(() => { fetchAll(); }, []);
+
+  useEffect(() => {
+    const checkCurrentUserRole = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", user.id)
+            .single();
+          if (profile?.role) {
+            setCurrentUserRole(profile.role);
+          }
+        }
+      } catch (error) {
+        console.error("Error checking user role:", error);
+      } finally {
+        setRoleLoading(false);
+      }
+    };
+    checkCurrentUserRole();
+  }, []);
 
   // Create offer
   async function handleCreateOffer() {
@@ -510,7 +538,16 @@ export default function HomepageControlPage() {
   }
 
   // UI
-  if (loading) return <div className="p-8 text-center">Loading...</div>;
+  if (roleLoading || loading) return <div className="p-8 text-center">Loading...</div>;
+  if (currentUserRole !== UserRole.ADMIN) {
+    return (
+      <div className="p-8 text-center">
+        <Shield className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-600 mb-2">Access Denied</h2>
+        <p className="text-gray-500">You need admin privileges to access this page.</p>
+      </div>
+    );
+  }
   
   return (
     <div className="container mx-auto p-6 space-y-6">

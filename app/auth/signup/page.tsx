@@ -115,175 +115,166 @@ export default function SignUp() {
   }
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-gray-50">
-        <div className="w-full max-w-md space-y-8">
-          {/* Language selector */}
-          <div className="flex justify-start">
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <span>🇺🇸</span>
-              <span>EN</span>
-            </div>
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{
+        backgroundImage: "url(/LOGINBACK.jpg)",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+      }}
+    >
+      <div className="flex w-full max-w-6xl h-[700px] rounded-2xl overflow-hidden shadow-2xl">
+        {/* Left: Diagonal Card with Colored Lines */}
+        <div
+          className="relative w-[48%] flex flex-col items-center justify-between py-0 px-0 overflow-hidden"
+          style={{ minHeight: "100%" }}
+        >
+          {/* Diagonal cut gradient background, same as signin */}
+          <div
+            className="absolute inset-0 z-0"
+            style={{
+              background:
+                "linear-gradient(135deg, #F72585 0%, #7209B7 60%, #4895EF 100%)",
+              clipPath: "polygon(0 0, 100% 0, 100% 85%, 0 100%)",
+            }}
+          />
+          <div className="relative z-10 w-full flex flex-col items-center pt-12">
+            <img src="/pazar.png" alt="BAZAR Logo" className="w-52 h-52 " />
           </div>
-
-          {/* Form */}
-          <div className="space-y-6">
-            <div className="text-center">
-              <h2 className="text-3xl font-bold text-blue-600 mb-2">SIGN UP</h2>
-              <p className="text-gray-600">Enter your email and password to register</p>
-            </div>
-
-            <form onSubmit={handleSignUp} className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="name" className="text-gray-700">
-                    Name
-                  </Label>
-                  <div className="relative mt-1">
-                    <Input
-                      id="name"
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Enter Name"
-                      className="pl-10 h-12 bg-gray-100 border-0"
-                      required
-                    />
-                    <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="email" className="text-gray-700">
-                    Email
-                  </Label>
-                  <div className="relative mt-1">
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="nohad@denezi.com"
-                      className="pl-10 h-12 bg-gray-100 border-0"
-                      required
-                    />
-                    <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="password" className="text-gray-700">
-                    Password
-                  </Label>
-                  <div className="relative mt-1">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="pl-10 pr-10 h-12 bg-gray-100 border-0"
-                      required
-                    />
-                    <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="newsletter"
-                  checked={newsletter}
-                  onCheckedChange={(checked) => setNewsletter(checked as boolean)}
-                />
-                <Label htmlFor="newsletter" className="text-sm text-gray-600">
-                  Subscribe to weekly newsletter
-                </Label>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="admin"
-                  checked={isAdmin}
-                  onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
-                />
-                <Label htmlFor="admin" className="text-sm text-gray-600">
-                  Register as Administrator
-                </Label>
-              </div>
-
-              {error && <div className="text-red-600 text-sm text-center">{error}</div>}
-
-              <Button
-                type="submit"
-                disabled={loading}
-                className="w-full h-12 bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white font-semibold"
-              >
-                {loading ? "Creating account..." : "SIGN UP"}
-              </Button>
-            </form>
-
-            <div className="text-center">
-              <span className="text-gray-600">Already have an account? </span>
-              <Link href="/auth/signin" className="text-blue-600 hover:underline font-semibold">
-                SIGN IN
-              </Link>
-            </div>
-            <div className="text-center mt-2">
-              <span className="text-gray-600">Are you a store owner? </span>
-              <Link href="/auth/signup-store" className="text-pink-600 hover:underline font-semibold">
-                Register your store here
-              </Link>
-            </div>
+          <div className="relative z-10 flex-1 flex flex-col items-center justify-center w-full pb-12">
+            <img
+              src="/LOGINIMG.png"
+              alt="Sign Up Illustration"
+              className="w-[420px] h-[320px] object-contain"
+            />
           </div>
-
-          <div className="text-center text-sm text-gray-500">All Rights Reserved .2025 ©</div>
         </div>
-      </div>
-
-      {/* Right side - Illustration */}
-      <div className="flex-1 bg-gradient-to-br from-purple-600 via-blue-600 to-pink-600 flex items-center justify-center p-8">
-        <div className="text-center text-white">
-          <div className="mb-8">
-            <div className="flex items-center justify-center space-x-3 mb-4">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                <span className="text-purple-600 font-bold">V</span>
+        {/* Right: Form on dark semi-transparent background */}
+        <div className="flex-1 flex flex-col justify-center px-20 py-12 bg-[#181C2F]">
+          <h2 className="text-4xl font-bold text-[#4F7FFF] mb-2">SIGN UP</h2>
+          <p className="text-[#A0AEC0] mb-8 text-lg">
+            Enter your email and password to register
+          </p>
+          <form onSubmit={handleSignUp} className="space-y-6">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="name" className="text-[#A0AEC0]">
+                  Name
+                </Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter Name"
+                    className="pl-10 h-12 bg-[#232A47] border-0 text-white"
+                    required
+                  />
+                  <User className="absolute left-3 top-3 h-5 w-5 text-[#4F7FFF]" />
+                </div>
               </div>
-              <h1 className="text-3xl font-bold">VRISTO</h1>
+              <div>
+                <Label htmlFor="email" className="text-[#A0AEC0]">
+                  Email
+                </Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="nohad@denezi.com"
+                    className="pl-10 h-12 bg-[#232A47] border-0 text-white"
+                    required
+                  />
+                  <Mail className="absolute left-3 top-3 h-5 w-5 text-[#4F7FFF]" />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="password" className="text-[#A0AEC0]">
+                  Password
+                </Label>
+                <div className="relative mt-1">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="pl-10 pr-10 h-12 bg-[#232A47] border-0 text-white"
+                    required
+                  />
+                  <Lock className="absolute left-3 top-3 h-5 w-5 text-[#4F7FFF]" />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-3 text-[#4F7FFF] hover:text-blue-400"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="newsletter"
+                checked={newsletter}
+                onCheckedChange={(checked) => setNewsletter(checked as boolean)}
+              />
+              <Label htmlFor="newsletter" className="text-sm text-[#A0AEC0]">
+                Subscribe to weekly newsletter
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="admin"
+                checked={isAdmin}
+                onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
+              />
+              <Label htmlFor="admin" className="text-sm text-[#A0AEC0]">
+                Register as Administrator
+              </Label>
+            </div>
+            {error && (
+              <div className="text-red-500 text-sm text-center">{error}</div>
+            )}
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 rounded-lg bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white font-bold text-lg tracking-wide shadow"
+            >
+              {loading ? "Creating account..." : "SIGN UP"}
+            </Button>
+          </form>
+          <div className="text-center mt-6">
+            <span className="text-[#A0AEC0]">Already have an account? </span>
+            <Link
+              href="/auth/signin"
+              className="text-[#4F7FFF] hover:underline font-semibold"
+            >
+              SIGN IN
+            </Link>
           </div>
-
-          <div className="relative">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 max-w-sm mx-auto">
-              <div className="bg-white rounded-xl p-6 mb-4">
-                <div className="w-16 h-16 bg-yellow-400 rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <span className="text-2xl">👤</span>
-                </div>
-                <div className="space-y-2">
-                  <div className="h-2 bg-gray-200 rounded"></div>
-                  <div className="h-2 bg-gray-200 rounded w-3/4"></div>
-                </div>
-                <div className="mt-4">
-                  <div className="bg-black text-white px-4 py-2 rounded text-sm">Sign Up</div>
-                </div>
-              </div>
-              <div className="flex justify-center">
-                <div className="w-32 h-32 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-4xl">👩‍💻</span>
-                </div>
-              </div>
-            </div>
+          <div className="text-center mt-2">
+            <span className="text-[#A0AEC0]">Are you a store owner? </span>
+            <Link
+              href="/auth/signup-store"
+              className="text-pink-400 hover:underline font-semibold"
+            >
+              Register your store here
+            </Link>
+          </div>
+          <div className="text-center text-sm text-[#A0AEC0] mt-8">
+            © 2025.TCSS
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

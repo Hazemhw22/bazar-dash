@@ -162,12 +162,8 @@ export function DashboardSidebar() {
         <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-sidebar-background text-sidebar-foreground border-r ">
           <div className="flex h-16 items-center justify-between px-4 border-b ">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">V</span>
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Bazar
-              </span>
+              <img src="/pazar.png" alt="BAZAR Logo" className="w-14 h-14 rounded" />
+              <span className="text-2xl font-bold text-gray-900 dark:text-white">PAZAR</span>
             </div>
             <button onClick={() => setSidebarOpen(false)} className="text-sidebar-foreground">
               <X className="h-6 w-6" />
@@ -181,13 +177,9 @@ export function DashboardSidebar() {
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
         <div className="flex flex-col flex-grow bg-sidebar-background text-sidebar-foreground border-r">
           <div className="flex h-16 items-center px-4 border-b ">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-sm">B</span>
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Bazar Dashboard
-              </span>
+            <div className="flex items-center space-x-1">
+              <img src="/pazar.png" alt="BAZAR Logo" className="w-16 h-16 rounded" />
+              <span className="text-3xl font-bold text-gray-700 dark:text-white">PAZAR</span>
             </div>
           </div>
           <SidebarContent pathname={pathname} counts={counts} userRole={userRole} />
