@@ -1,15 +1,15 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { Plus, Edit, Trash2, Store, Package, Tag } from "lucide-react";
+import { Plus, Edit, Trash2, Store, Package, Tag, TrendingUp, Star, Car, Diamond } from "lucide-react";
 import { safeCreateNotification, NotificationTemplates } from "@/lib/notifications";
 import { UserRole } from "@/types/database";
 import { Shield } from "lucide-react";
@@ -18,12 +18,14 @@ import { Shield } from "lucide-react";
 interface Offer {
   id: string;
   title: string;
+  description?: string | null;
   homepage_offer_products?: { product_id: string; products: any }[];
-}
-type ShopPreview = {
+};
+
+interface ShopPreview {
   id: string;
   name: string;
-  logo_url?: string | null;
+  logo_url?: string;
   description?: string | null;
 };
 
@@ -54,6 +56,36 @@ export default function HomepageControlPage() {
 
   const [currentUserRole, setCurrentUserRole] = useState<UserRole | null>(null);
   const [roleLoading, setRoleLoading] = useState(true);
+
+  // Tab configuration
+  const tabs = [
+    {
+      id: 'offers',
+      label: 'Special Offers',
+      icon: TrendingUp,
+      color: 'text-red-500',
+      bgColor: 'bg-red-50 dark:bg-red-900/20',
+      borderColor: 'border-red-200 dark:border-red-800',
+    },
+    {
+      id: 'featured_products',
+      label: 'Featured Products',
+      icon: Star,
+      color: 'text-yellow-500',
+      bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
+      borderColor: 'border-yellow-200 dark:border-yellow-800',
+    },
+    {
+      id: 'featured_stores',
+      label: 'Featured Stores',
+      icon: Store,
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/20',
+      borderColor: 'border-blue-200 dark:border-blue-800',
+    },
+  ];
+
+  const currentTab = tabs.find((tab) => tab.id === activeTab);
 
   // Fetch data
   async function fetchAll() {
@@ -155,10 +187,6 @@ export default function HomepageControlPage() {
       setProducts(processedProducts);
       setShops(shopsData || []);
       setFeaturedStores(processedFeaturedStores);
-      
-      console.log("Processed offers:", processedOffers);
-      console.log("Processed products:", processedProducts);
-      console.log("Featured stores:", processedFeaturedStores);
     } catch (error) {
       console.error("Error in fetchAll:", error);
       toast({
@@ -170,160 +198,123 @@ export default function HomepageControlPage() {
       setLoading(false);
     }
   }
-  useEffect(() => { fetchAll(); }, []);
+
+  // Fetch user role
+  async function fetchUserRole() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", user.id)
+          .single();
+        
+        setCurrentUserRole(profile?.role || null);
+      }
+    } catch (error) {
+      console.error("Error fetching user role:", error);
+    } finally {
+      setRoleLoading(false);
+    }
+  }
 
   useEffect(() => {
-    const checkCurrentUserRole = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .single();
-          if (profile?.role) {
-            setCurrentUserRole(profile.role);
-          }
-        }
-      } catch (error) {
-        console.error("Error checking user role:", error);
-      } finally {
-        setRoleLoading(false);
-      }
-    };
-    checkCurrentUserRole();
+    fetchAll();
+    fetchUserRole();
   }, []);
 
-  // Create offer
+  // Offer management functions
   async function handleCreateOffer() {
-    if (!offerForm.title.trim()) {
-      toast({ 
-        title: "Error", 
-        description: "Offer name required", 
-        variant: "destructive" 
-      });
-      return;
-    }
-
     try {
-      const { data, error } = await supabase
-        .from("homepage_offers")
-        .insert([{ title: offerForm.title }])
-        .select();
-
-      if (error) {
-        console.error("Error creating offer:", error);
-        toast({ 
-          title: "Error", 
-          description: "Failed to create offer", 
-          variant: "destructive" 
+      if (!offerForm.title.trim()) {
+        toast({
+          title: "Error",
+          description: "Offer title is required",
+          variant: "destructive",
         });
         return;
       }
 
-      console.log("Created offer:", data);
-      
+      const { data, error } = await supabase
+        .from("homepage_offers")
+        .insert([{ title: offerForm.title.trim() }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
       // Create notification
-      await safeCreateNotification(NotificationTemplates.offerCreated(offerForm.title))
+      await safeCreateNotification(NotificationTemplates.offerCreated(offerForm.title.trim()));
 
       toast({
         title: "Success",
         description: "Offer created successfully",
       });
-      
-      setOfferDialogOpen(false);
+
       setOfferForm({ title: "" });
+      setOfferDialogOpen(false);
       fetchAll();
     } catch (error) {
       console.error("Error creating offer:", error);
-      toast({ 
-        title: "Error", 
-        description: "Failed to create offer", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: "Failed to create offer",
+        variant: "destructive",
       });
     }
-  }
-
-  // Edit offer
-  function openEditOfferDialog(offer: Offer) {
-    setEditingOffer(offer);
-    setOfferForm({ title: offer.title });
-    setOfferDialogOpen(true);
   }
 
   async function handleUpdateOffer() {
-    if (!editingOffer || !offerForm.title.trim()) {
-      toast({ 
-        title: "Error", 
-        description: "Offer name required", 
-        variant: "destructive" 
-      });
-      return;
-    }
-
     try {
-      const { error } = await supabase
-        .from("homepage_offers")
-        .update({ title: offerForm.title })
-        .eq("id", editingOffer.id);
-
-      if (error) {
-        console.error("Error updating offer:", error);
-        toast({ 
-          title: "Error", 
-          description: "Failed to update offer", 
-          variant: "destructive" 
+      if (!editingOffer || !offerForm.title.trim()) {
+        toast({
+          title: "Error",
+          description: "Offer title is required",
+          variant: "destructive",
         });
         return;
       }
 
+      const { error } = await supabase
+        .from("homepage_offers")
+        .update({ title: offerForm.title.trim() })
+        .eq("id", editingOffer.id);
+
+      if (error) throw error;
+
       // Create notification
-      await safeCreateNotification(NotificationTemplates.offerUpdated(offerForm.title))
+      await safeCreateNotification(NotificationTemplates.offerUpdated(offerForm.title.trim()));
 
       toast({
         title: "Success",
         description: "Offer updated successfully",
       });
-      
-      setOfferDialogOpen(false);
-      setOfferForm({ title: "" });
+
       setEditingOffer(null);
+      setOfferForm({ title: "" });
       fetchAll();
     } catch (error) {
       console.error("Error updating offer:", error);
-      toast({ 
-        title: "Error", 
-        description: "Failed to update offer", 
-        variant: "destructive" 
+      toast({
+        title: "Error",
+        description: "Failed to update offer",
+        variant: "destructive",
       });
     }
   }
 
-  // Delete offer
   async function handleDeleteOffer(offerId: string) {
-    if (!confirm("Are you sure you want to delete this offer? This will also remove all associated products.")) {
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from("homepage_offers")
         .delete()
         .eq("id", offerId);
 
-      if (error) {
-        console.error("Error deleting offer:", error);
-        toast({ 
-          title: "Error", 
-          description: "Failed to delete offer", 
-          variant: "destructive" 
-        });
-        return;
-      }
+      if (error) throw error;
 
       // Create notification
-      await safeCreateNotification(NotificationTemplates.offerDeleted(editingOffer?.title || "Unknown Offer"))
+      await safeCreateNotification(NotificationTemplates.offerDeleted("Unknown Offer"));
 
       toast({
         title: "Success",
@@ -333,91 +324,16 @@ export default function HomepageControlPage() {
       fetchAll();
     } catch (error) {
       console.error("Error deleting offer:", error);
-      toast({ 
-        title: "Error", 
-        description: "Failed to delete offer", 
-        variant: "destructive" 
-      });
-    }
-  }
-
-  // Add products to offer
-  function openAddProductsDialog(offer: Offer) {
-    setSelectedOffer(offer);
-    setSelectedProducts(offer.homepage_offer_products?.map(p => p.product_id) || []);
-    setAddProductsDialogOpen(true);
-  }
-
-  async function handleSaveOfferProducts() {
-    if (!selectedOffer) return;
-
-    try {
-      // Remove all existing products for this offer
-      const { error: deleteError } = await supabase
-        .from("homepage_offer_products")
-        .delete()
-        .eq("offer_id", selectedOffer.id);
-
-      if (deleteError) {
-        console.error("Error removing existing products:", deleteError);
-        toast({
-          title: "Error",
-          description: "Failed to update offer products",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Add selected products
-      if (selectedProducts.length > 0) {
-        const { error: insertError } = await supabase
-          .from("homepage_offer_products")
-          .insert(selectedProducts.map(pid => ({ 
-            offer_id: selectedOffer.id, 
-            product_id: pid 
-          })));
-
-        if (insertError) {
-          console.error("Error adding products to offer:", insertError);
-          toast({
-            title: "Error",
-            description: "Failed to add products to offer",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-
-      toast({
-        title: "Success",
-        description: "Offer products updated successfully",
-      });
-
-      setAddProductsDialogOpen(false);
-      setSelectedOffer(null);
-      fetchAll();
-    } catch (error) {
-      console.error("Error saving offer products:", error);
       toast({
         title: "Error",
-        description: "Failed to save offer products",
+        description: "Failed to delete offer",
         variant: "destructive",
       });
     }
   }
 
-  // Featured stores management
-  function openAddStoresDialog() {
-    setSelectedStores(featuredStores.map(fs => fs.shop_id));
-    setAddStoresDialogOpen(true);
-  }
-
-  // Remove individual store from featured stores
+  // Featured stores management functions
   async function handleRemoveFeaturedStore(featuredStoreId: string) {
-    if (!confirm("Are you sure you want to remove this store from featured stores?")) {
-      return;
-    }
-
     try {
       const { error } = await supabase
         .from("homepage_featured_stores")
@@ -484,27 +400,29 @@ export default function HomepageControlPage() {
         console.error("Error removing existing featured stores:", JSON.stringify(deleteError, null, 2));
         toast({
           title: "Error",
-          description: "Failed to update featured stores",
+          description: "Failed to remove existing featured stores",
           variant: "destructive",
         });
         return;
       }
 
-      // Add selected stores
+      // Add new selected stores
       if (selectedStores.length > 0) {
+        const storesToAdd = selectedStores.map((storeId, index) => ({
+          shop_id: storeId,
+          position: index + 1,
+          is_active: true
+        }));
+
         const { error: insertError } = await supabase
           .from("homepage_featured_stores")
-          .insert(selectedStores.map((shopId, index) => ({ 
-            shop_id: shopId, 
-            position: index + 1,
-            is_active: true
-          })));
+          .insert(storesToAdd);
 
         if (insertError) {
-          console.error("Error adding featured stores:", JSON.stringify(insertError, null, 2));
+          console.error("Error adding new featured stores:", JSON.stringify(insertError, null, 2));
           toast({
             title: "Error",
-            description: "Failed to add featured stores",
+            description: "Failed to add new featured stores",
             variant: "destructive",
           });
           return;
@@ -536,374 +454,533 @@ export default function HomepageControlPage() {
     }
   }
 
-  // UI
-  if (roleLoading || loading) return <div className="p-8 text-center">Loading...</div>;
-  if (currentUserRole !== UserRole.ADMIN) {
+  if (loading || roleLoading) {
     return (
-      <div className="p-8 text-center">
-        <Shield className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-        <h2 className="text-xl font-semibold text-gray-600 mb-2">Access Denied</h2>
-        <p className="text-gray-500">You need admin privileges to access this page.</p>
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
       </div>
     );
   }
-  
+
+  // Check if user has permission to edit
+  const canEdit = currentUserRole === "admin";
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Homepage Control</h1>
+    <div className="container mx-auto p-3 sm:p-4 md:p-6">
+      {/* Header */}
+      <div className="mb-4 sm:mb-6">
+        <div className="flex items-center gap-2 sm:gap-3 mb-2">
+          <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Homepage Control</h1>
+        </div>
+        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Manage homepage content including offers, featured products, and featured stores</p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="offers" className="dark:text-gray-200">Special Offers</TabsTrigger>
-          <TabsTrigger value="stores" className="dark:text-gray-200">Featured Stores</TabsTrigger>
-        </TabsList>
-        
-        {/* Special Offers */}
-        <TabsContent value="offers">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Special Offers</CardTitle>
-                <CardDescription>Create and manage homepage offers. Add products after creating an offer.</CardDescription>
-              </div>
-              <Dialog open={offerDialogOpen} onOpenChange={(open) => {
-                setOfferDialogOpen(open);
-                if (!open) {
-                  setEditingOffer(null);
-                  setOfferForm({ title: "" });
-                }
-              }}>
-                <DialogTrigger asChild>
-                  <Button className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" /> Add Offer
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>{editingOffer ? "Edit Offer" : "Add New Offer"}</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <Label htmlFor="offer-title">Offer Name</Label>
-                    <Input 
-                      id="offer-title" 
-                      value={offerForm.title} 
-                      onChange={e => setOfferForm({ title: e.target.value })} 
-                      placeholder="Enter offer name" 
+      {/* Tabs */}
+      <div className="mb-4 sm:mb-6">
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <nav className="-mb-px flex space-x-4 sm:space-x-8 rtl:space-x-reverse overflow-x-auto">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`
+                    flex items-center gap-1 sm:gap-2 py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap
+                    ${
+                      isActive
+                        ? `border-primary text-primary ${tab.color}`
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                    }
+                  `}
+                >
+                  <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${isActive ? tab.color : ''}`} />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {currentTab && (
+        <div className="space-y-4 sm:space-y-6">
+          {/* Offers Tab */}
+          {activeTab === 'offers' && (
+            <div className="space-y-4 sm:space-y-6">
+              {/* Add Offer Section */}
+              <div className={`panel ${currentTab.bgColor} ${currentTab.borderColor} border-2`}>
+                <div className="mb-4 sm:mb-5 flex items-center gap-2 sm:gap-3">
+                  <Plus className={`w-5 h-5 sm:w-6 sm:h-6 ${currentTab.color}`} />
+                  <h5 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                    Add New Offer
+                  </h5>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-end">
+                  <div className="flex-1">
+                    <Label htmlFor="offer-title" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                      Offer Title
+                    </Label>
+                    <Input
+                      id="offer-title"
+                      placeholder="Enter offer title..."
+                      value={offerForm.title}
+                      onChange={(e) => setOfferForm({ title: e.target.value })}
+                      className="form-input"
                     />
                   </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => {
-                      setOfferDialogOpen(false);
-                      setEditingOffer(null);
-                      setOfferForm({ title: "" });
-                    }}>
-                      Cancel
-                    </Button>
-                    <Button onClick={editingOffer ? handleUpdateOffer : handleCreateOffer}>
-                      {editingOffer ? "Update Offer" : "Create Offer"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-            <CardContent>
-              {offers.length === 0 ? (
-                <div className="text-center py-8">
-                  <Tag className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                  <p className="text-gray-600 dark:text-gray-300">No offers created yet</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Create your first offer to get started</p>
+                  <Button
+                    onClick={handleCreateOffer}
+                    disabled={!offerForm.title.trim() || !canEdit}
+                    className={`text-white px-4 sm:px-6 py-2 sm:py-3 w-full sm:w-auto ${currentTab.color.replace('text-', 'bg-')} hover:opacity-90 disabled:opacity-50`}
+                  >
+                    Add Offer
+                  </Button>
                 </div>
-              ) : (
-                <Tabs defaultValue="offers" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="offers">All Offers</TabsTrigger>
-                    <TabsTrigger value="products">Manage Products</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="offers" className="space-y-4">
-                    {offers.map(offer => (
-                      <div key={offer.id} className="border rounded-lg p-4 dark:border-gray-700 dark:bg-gray-800">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{offer.title}</h3>
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                              {offer.homepage_offer_products?.length || 0} products
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              onClick={() => openEditOfferDialog(offer)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="destructive" 
-                              onClick={() => handleDeleteOffer(offer.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </TabsContent>
-                  
-                  <TabsContent value="products" className="space-y-4">
-                    {offers.map(offer => (
-                      <div key={offer.id} className="border rounded-lg p-4 dark:border-gray-700 dark:bg-gray-800">
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="font-semibold text-gray-900 dark:text-gray-100">{offer.title}</h3>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => openAddProductsDialog(offer)}
-                          >
-                            Manage Products
-                          </Button>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {offer.homepage_offer_products?.map(p => (
-                            <span key={p.product_id} className="flex items-center gap-1 bg-blue-100 text-blue-800 rounded px-2 py-1 text-xs">
-                              {p.products?.main_image && p.products.main_image.trim() !== "" && (
-                                <img 
-                                  src={p.products.main_image} 
-                                  alt={p.products.name} 
-                                  className="w-4 h-4 rounded" 
-                                />
-                              )}
-                              {p.products?.name}
-                              <span className="text-gray-400">${p.products?.price}</span>
-                              {p.products?.shops?.logo_url && p.products.shops.logo_url.trim() !== "" && (
-                                <img 
-                                  src={p.products.shops.logo_url} 
-                                  alt={p.products.shops.name} 
-                                  className="w-3 h-3 rounded" 
-                                />
-                              )}
-                              <span>{p.products?.shops?.name}</span>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </TabsContent>
-                </Tabs>
-              )}
-            </CardContent>
-          </Card>
-          
-          {/* Add Products to Offer Dialog */}
-          <Dialog open={addProductsDialogOpen} onOpenChange={setAddProductsDialogOpen}>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Add Products to Offer</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="product-search">Search Products</Label>
-                  <Input
-                    id="product-search"
-                    placeholder="Search by product name..."
-                    value={productSearch}
-                    onChange={(e) => setProductSearch(e.target.value)}
-                    className="mt-1"
-                  />
+              </div>
+
+              {/* Offers List */}
+              <div className="panel">
+                <div className="mb-4 sm:mb-5 flex items-center gap-2 sm:gap-3">
+                  <TrendingUp className={`w-5 h-5 sm:w-6 sm:h-6 ${currentTab.color}`} />
+                  <h5 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                    Special Offers ({offers.length})
+                  </h5>
                 </div>
-                <div className="max-h-96 overflow-y-auto">
-                  <div className="flex flex-wrap gap-2">
-                    {products
-                      .filter(product => 
-                        product.name.toLowerCase().includes(productSearch.toLowerCase()) ||
-                        product.shops?.name.toLowerCase().includes(productSearch.toLowerCase())
-                      )
-                      .map(product => (
-                        <label key={product.id} className="flex items-center gap-2 cursor-pointer border rounded p-2 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">
-                          {product.main_image && product.main_image.trim() !== "" && (
-                            <img 
-                              src={product.main_image} 
-                              alt={product.name} 
-                              className="w-8 h-8 rounded object-cover" 
-                            />
-                          )}
-                          <div className="flex flex-col">
-                            <span className="font-medium dark:text-gray-100">{product.name}</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">${product.price}</span>
-                            {product.shops?.logo_url && product.shops.logo_url.trim() !== "" && (
-                              <div className="flex items-center gap-1 mt-1">
-                                <img 
-                                  src={product.shops.logo_url} 
-                                  alt={product.shops.name} 
-                                  className="w-4 h-4 rounded" 
-                                />
-                                <span className="text-xs text-gray-400 dark:text-gray-500">{product.shops.name}</span>
+
+                {offers.length === 0 ? (
+                  <div className="text-center py-8 sm:py-12">
+                    <TrendingUp className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 ${currentTab.color} opacity-50`} />
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-2">No offers available</h3>
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4">Create your first special offer to get started</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {offers.map((offer) => (
+                      <div
+                        key={offer.id}
+                        className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow p-4 sm:p-6"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+                          <div className="flex-1">
+                            <h6 className="font-bold text-gray-900 dark:text-white mb-2 text-base sm:text-lg">{offer.title}</h6>
+                            {offer.description && (
+                              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">{offer.description}</p>
+                            )}
+                            {offer.homepage_offer_products && offer.homepage_offer_products.length > 0 && (
+                              <div className="mt-3">
+                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mb-2">Products in this offer:</p>
+                                <div className="flex flex-wrap gap-2">
+                                  {offer.homepage_offer_products.map((p: any, index: number) => (
+                                    <span key={index} className="inline-flex items-center gap-1 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs sm:text-sm">
+                                      {p.products?.main_image && (
+                                        <img 
+                                          src={p.products.main_image} 
+                                          alt={p.products.name} 
+                                          className="w-3 h-3 rounded" 
+                                        />
+                                      )}
+                                      <span>{p.products?.name}</span>
+                                    </span>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </div>
-                          <input
-                            type="checkbox"
-                            checked={selectedProducts.includes(product.id)}
-                            onChange={() => setSelectedProducts(prev => 
-                              prev.includes(product.id) 
-                                ? prev.filter(id => id !== product.id) 
-                                : [...prev, product.id]
-                            )}
-                            className="ml-2"
-                          />
-                        </label>
-                      ))}
+                          {canEdit && (
+                            <div className="flex gap-2 self-end sm:self-auto">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setEditingOffer(offer);
+                                  setOfferForm({ title: offer.title });
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteOffer(offer.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setAddProductsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveOfferProducts}>Save</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </TabsContent>
-        
+            </div>
+          )}
 
-        
-        {/* Featured Stores */}
-        <TabsContent value="stores">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>Featured Stores</CardTitle>
-                <CardDescription>Manage which stores are featured on your homepage.</CardDescription>
-              </div>
-              <Button onClick={openAddStoresDialog} className="flex items-center gap-2">
-                <Plus className="h-4 w-4" /> Add Featured Stores
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {featuredStores.length === 0 ? (
-                <div className="text-center py-8">
-                  <Store className="h-12 w-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
-                  <p className="text-gray-600 dark:text-gray-300">No featured stores yet</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Click "Add Featured Stores" to add stores</p>
+          {/* Featured Products Tab */}
+          {activeTab === 'featured_products' && (
+            <div className="space-y-4 sm:space-y-6">
+              {/* Add Product Section */}
+              <div className={`panel ${currentTab.bgColor} ${currentTab.borderColor} border-2`}>
+                <div className="mb-4 sm:mb-5 flex items-center gap-2 sm:gap-3">
+                  <Plus className={`w-5 h-5 sm:w-6 sm:h-6 ${currentTab.color}`} />
+                  <h5 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                    Add Featured Product
+                  </h5>
                 </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b dark:border-gray-700">
-                        <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Position</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Store</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Description</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900 dark:text-gray-100">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {featuredStores.map((featuredStore, index) => (
-                        <tr key={featuredStore.id} className="border-b hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
-                          <td className="py-3 px-4">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-end">
+                  <div className="flex-1">
+                    <Label htmlFor="product-search" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                      Search Products
+                    </Label>
+                    <Input
+                      id="product-search"
+                      placeholder="Search by product name..."
+                      value={productSearch}
+                      onChange={(e) => setProductSearch(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button
+                    onClick={() => setAddProductsDialogOpen(true)}
+                    disabled={!canEdit}
+                    className={`text-white px-4 sm:px-6 py-2 sm:py-3 w-full sm:w-auto ${currentTab.color.replace('text-', 'bg-')} hover:opacity-90 disabled:opacity-50`}
+                  >
+                    Manage Products
+                  </Button>
+                </div>
+              </div>
+
+              {/* Featured Products Grid */}
+              <div className="panel">
+                <div className="mb-4 sm:mb-5 flex items-center gap-2 sm:gap-3">
+                  <Star className={`w-5 h-5 sm:w-6 sm:h-6 ${currentTab.color}`} />
+                  <h5 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                    Featured Products ({products.filter(p => p.is_featured).length})
+                  </h5>
+                </div>
+
+                {products.filter(p => p.is_featured).length === 0 ? (
+                  <div className="text-center py-8 sm:py-12">
+                    <Star className={`w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 ${currentTab.color} opacity-50`} />
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-2">No featured products</h3>
+                    <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-4">Add products to showcase them on the homepage</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                    {products.filter(p => p.is_featured).map((product) => (
+                                              <div
+                          key={product.id}
+                          className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow"
+                        >
+                          {/* Product Image */}
+                          <div className="relative h-32 sm:h-40 md:h-48">
+                            <img
+                              src={product.main_image || '/assets/images/img-placeholder-fallback.webp'}
+                              alt={product.name}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                e.currentTarget.src = '/assets/images/img-placeholder-fallback.webp';
+                              }}
+                            />
+                          </div>
+                          {/* Product Details */}
+                          <div className="p-3 sm:p-4">
+                            <h6 className="font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 text-sm sm:text-base">{product.name}</h6>
+                            <div className="space-y-1 text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                              <div className="flex justify-between">
+                                <span>Price:</span>
+                                <span className="font-bold text-primary">${product.price}</span>
+                              </div>
+                              {product.shops && (
+                                <div className="flex justify-between">
+                                  <span>Store:</span>
+                                  <span className="font-medium">{product.shops.name}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Featured Stores Tab */}
+          {activeTab === 'featured_stores' && (
+            <div className="space-y-4 sm:space-y-6">
+              {/* Add Store Section */}
+              <div className={`panel ${currentTab.bgColor} ${currentTab.borderColor} border-2`}>
+                <div className="mb-4 sm:mb-5 flex items-center gap-2 sm:gap-3">
+                  <Plus className={`w-5 h-5 sm:w-6 sm:h-6 ${currentTab.color}`} />
+                  <h5 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                    Manage Featured Stores
+                  </h5>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-end">
+                  <div className="flex-1">
+                    <Label htmlFor="store-search" className="block text-sm font-bold text-gray-700 dark:text-white mb-2">
+                      Search Stores
+                    </Label>
+                    <Input
+                      id="store-search"
+                      placeholder="Search by store name..."
+                      value={storeSearch}
+                      onChange={(e) => setStoreSearch(e.target.value)}
+                      className="mt-1"
+                    />
+                  </div>
+                  <Button
+                    onClick={() => setAddStoresDialogOpen(true)}
+                    disabled={!canEdit}
+                    className={`text-white px-4 sm:px-6 py-2 sm:py-3 w-full sm:w-auto ${currentTab.color.replace('text-', 'bg-')} hover:opacity-90 disabled:opacity-50`}
+                  >
+                    Manage Stores
+                  </Button>
+                </div>
+              </div>
+
+              {/* Featured Stores Grid */}
+              <div className="panel">
+                <div className="mb-5 flex items-center gap-3">
+                  <Store className={`w-6 h-6 ${currentTab.color}`} />
+                  <h5 className="text-xl font-bold text-gray-900 dark:text-white">
+                    Featured Stores ({featuredStores.length})
+                  </h5>
+                </div>
+
+                {featuredStores.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Store className={`w-16 h-16 mx-auto mb-4 ${currentTab.color} opacity-50`} />
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No featured stores</h3>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">Add stores to showcase them on the homepage</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {featuredStores.map((featuredStore, index) => (
+                      <div
+                        key={featuredStore.id}
+                        className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-shadow"
+                      >
+                        {/* Store Image */}
+                        <div className="relative h-48">
+                          <img
+                            src={featuredStore.shops?.logo_url || '/assets/images/img-placeholder-fallback.webp'}
+                            alt={featuredStore.shops?.name}
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              e.currentTarget.src = '/assets/images/img-placeholder-fallback.webp';
+                            }}
+                          />
+                          <div className="absolute top-2 left-2">
                             <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded">
                               #{index + 1}
                             </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-3">
-                              {featuredStore.shops?.logo_url && featuredStore.shops.logo_url.trim() !== "" && (
+                          </div>
+                          {canEdit && (
+                            <button
+                              onClick={() => handleRemoveFeaturedStore(featuredStore.id)}
+                              className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+                              title="Remove store"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                        {/* Store Details */}
+                        <div className="p-4">
+                          <h6 className="font-bold text-gray-900 dark:text-white mb-2">{featuredStore.shops?.name}</h6>
+                          <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                            <div className="flex justify-between">
+                              <span>Position:</span>
+                              <span className="font-medium">#{featuredStore.position}</span>
+                            </div>
+                            {featuredStore.shops?.description && (
+                              <p className="text-gray-600 dark:text-gray-400 text-xs line-clamp-2">
+                                {featuredStore.shops.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Edit Offer Dialog */}
+      <Dialog open={!!editingOffer} onOpenChange={() => setEditingOffer(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Offer</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-offer-title">Offer Title</Label>
+              <Input
+                id="edit-offer-title"
+                value={offerForm.title}
+                onChange={(e) => setOfferForm({ title: e.target.value })}
+                placeholder="Enter offer title..."
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditingOffer(null)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateOffer}>
+                Update Offer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Products to Offer Dialog */}
+      <Dialog open={addProductsDialogOpen} onOpenChange={setAddProductsDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Products to Offer</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="product-search">Search Products</Label>
+              <Input
+                id="product-search"
+                placeholder="Search by product name..."
+                value={productSearch}
+                onChange={(e) => setProductSearch(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div className="max-h-96 overflow-y-auto">
+              <div className="grid gap-3">
+                {products
+                  .filter(product => 
+                    product.name.toLowerCase().includes(productSearch.toLowerCase())
+                  )
+                  .map((product) => (
+                    <div key={product.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        {product.main_image && (
+                          <img 
+                            src={product.main_image} 
+                            alt={product.name} 
+                            className="w-12 h-12 rounded object-cover" 
+                          />
+                        )}
+                        <div>
+                          <div className="font-medium">{product.name}</div>
+                          <div className="text-sm text-gray-500">${product.price}</div>
+                          {product.shops && (
+                            <div className="flex items-center gap-1 text-xs text-gray-400">
+                              {product.shops.logo_url && (
                                 <img 
-                                  src={featuredStore.shops.logo_url} 
-                                  alt={featuredStore.shops.name} 
-                                  className="w-10 h-10 rounded object-cover" 
+                                  src={product.shops.logo_url} 
+                                  alt={product.shops.name} 
+                                  className="w-3 h-3 rounded" 
                                 />
                               )}
-                              <span className="font-medium">{featuredStore.shops?.name}</span>
+                              <span>{product.shops.name}</span>
                             </div>
-                          </td>
-                          <td className="py-3 px-4 text-gray-600 dark:text-gray-300">
-                            {featuredStore.shops?.description || "No description"}
-                          </td>
-                          <td className="py-3 px-4">
-                            <Button 
-                              size="sm" 
-                              variant="destructive" 
-                              onClick={() => handleRemoveFeaturedStore(featuredStore.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          
-          {/* Add Stores to Featured Dialog */}
-          <Dialog open={addStoresDialogOpen} onOpenChange={setAddStoresDialogOpen}>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Manage Featured Stores</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="store-search">Search Stores</Label>
-                  <Input
-                    id="store-search"
-                    placeholder="Search by store name..."
-                    value={storeSearch}
-                    onChange={(e) => setStoreSearch(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-                <div className="max-h-96 overflow-y-auto">
-                  <div className="flex flex-wrap gap-2">
-                    {shops
-                      .filter(shop => 
-                        shop.name.toLowerCase().includes(storeSearch.toLowerCase()) ||
-                        (shop.description && shop.description.toLowerCase().includes(storeSearch.toLowerCase()))
-                      )
-                      .map(shop => (
-                        <label key={shop.id} className="flex items-center gap-2 cursor-pointer border rounded p-2 hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700">
-                          {shop.logo_url && shop.logo_url.trim() !== "" && (
-                            <img 
-                              src={shop.logo_url} 
-                              alt={shop.name} 
-                              className="w-8 h-8 rounded object-cover" 
-                            />
                           )}
-                          <div className="flex flex-col">
-                            <span className="font-medium dark:text-gray-100">{shop.name}</span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">{shop.description}</span>
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={selectedStores.includes(shop.id)}
-                            onChange={() => setSelectedStores(prev => 
-                              prev.includes(shop.id) 
-                                ? prev.filter(id => id !== shop.id) 
-                                : [...prev, shop.id]
-                            )}
-                            className="ml-2"
-                          />
-                        </label>
-                      ))}
-                  </div>
-                </div>
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={selectedProducts.includes(product.id)}
+                        onChange={() => setSelectedProducts(prev => 
+                          prev.includes(product.id) 
+                            ? prev.filter(id => id !== product.id) 
+                            : [...prev, product.id]
+                        )}
+                        className="ml-2"
+                      />
+                    </div>
+                  ))}
               </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setAddStoresDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveFeaturedStores}>Save</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </TabsContent>
-      </Tabs>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add Stores to Featured Dialog */}
+      <Dialog open={addStoresDialogOpen} onOpenChange={setAddStoresDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manage Featured Stores</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="store-search">Search Stores</Label>
+              <Input
+                id="store-search"
+                placeholder="Search by store name..."
+                value={storeSearch}
+                onChange={(e) => setStoreSearch(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div className="max-h-96 overflow-y-auto">
+              <div className="grid gap-3">
+                {shops
+                  .filter(shop => 
+                    shop.name.toLowerCase().includes(storeSearch.toLowerCase())
+                  )
+                  .map((shop) => (
+                    <div key={shop.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        {shop.logo_url && (
+                          <img 
+                            src={shop.logo_url} 
+                            alt={shop.name} 
+                            className="w-12 h-12 rounded object-cover" 
+                          />
+                        )}
+                        <div>
+                          <div className="font-medium">{shop.name}</div>
+                          {shop.description && (
+                            <div className="text-sm text-gray-500">{shop.description}</div>
+                          )}
+                        </div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={selectedStores.includes(shop.id)}
+                        onChange={() => setSelectedStores(prev => 
+                          prev.includes(shop.id) 
+                            ? prev.filter(id => id !== shop.id) 
+                            : [...prev, shop.id]
+                        )}
+                        className="ml-2"
+                      />
+                    </div>
+                  ))}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setAddStoresDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveFeaturedStores}>
+                Save Featured Stores
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

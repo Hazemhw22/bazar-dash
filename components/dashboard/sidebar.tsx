@@ -159,14 +159,16 @@ export function DashboardSidebar() {
           className="fixed inset-0 bg-gray-600 bg-opacity-75"
           onClick={() => setSidebarOpen(false)}
         />
-        <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-sidebar-background text-sidebar-foreground border-r ">
-          <div className="flex h-16 items-center justify-between px-4 border-b ">
+        <div className="fixed inset-y-0 left-0 flex w-72 sm:w-80 flex-col bg-white dark:bg-gray-900 text-gray-800 dark:text-gray-200 border-r border-blue-200 dark:border-gray-700 shadow-xl">
+          <div className="flex h-16 items-center justify-between px-4 border-b border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
             <div className="flex items-center space-x-3">
-              <img src="/pazar.png" alt="BAZAR Logo" className="w-14 h-14 rounded" />
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">PAZAR</span>
+              <div className="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg">
+                <img src="/pazar.png" alt="BAZAR Logo" className="w-12 h-12 sm:w-14 sm:h-14 rounded" />
+              </div>
+              <span className="text-xl sm:text-2xl font-bold text-blue-700 dark:text-blue-300">PAZAR</span>
             </div>
-            <button onClick={() => setSidebarOpen(false)} className="text-sidebar-foreground">
-              <X className="h-6 w-6" />
+            <button onClick={() => setSidebarOpen(false)} className="text-sidebar-foreground hover:bg-gray-100 dark:hover:bg-gray-800 p-2 rounded-md transition-colors">
+              <X className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
           </div>
           <SidebarContent pathname={pathname} counts={counts} userRole={userRole} />
@@ -175,11 +177,13 @@ export function DashboardSidebar() {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-col flex-grow bg-sidebar-background text-sidebar-foreground border-r">
-          <div className="flex h-16 items-center px-4 border-b ">
-            <div className="flex items-center space-x-1">
-              <img src="/pazar.png" alt="BAZAR Logo" className="w-16 h-16 rounded" />
-              <span className="text-3xl font-bold text-gray-700 dark:text-white">PAZAR</span>
+        <div className="flex flex-col flex-grow bg-gradient-to-b from-blue-50 to-blue-100 dark:from-gray-800 dark:to-gray-900 text-gray-800 dark:text-gray-200 border-r border-blue-200 dark:border-gray-700 shadow-lg">
+          <div className="flex h-18 items-center px-4 border-b border-blue-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <div className="flex items-center space-x-2">
+              <div className="bg-blue-300 dark:bg-blue-900/50 rounded-full p-0.2">
+                <img src="/pazar.png" alt="BAZAR Logo" className="w-20 h-20 rounded" />
+              </div>
+              <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">PAZAR</span>
             </div>
           </div>
           <SidebarContent pathname={pathname} counts={counts} userRole={userRole} />
@@ -187,12 +191,12 @@ export function DashboardSidebar() {
       </div>
 
       {/* Mobile menu button */}
-      <div className="lg:hidden fixed top-4 left-4 z-40">
+      <div className="lg:hidden fixed top-3 left-3 z-40">
         <button
           onClick={() => setSidebarOpen(true)}
-          className="bg-card p-2 rounded-md shadow-md text-sidebar-foreground"
+          className="bg-card p-2 rounded-md shadow-md text-sidebar-foreground hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
         >
-          <Menu className="h-6 w-6" />
+          <Menu className="h-5 w-5" />
         </button>
       </div>
     </>
@@ -241,7 +245,7 @@ function SidebarContent({
       <nav className="flex-1 px-4 py-4 space-y-8">
         {/* Main Navigation */}
         <div>
-          <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+          <h3 className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-3">
             MAIN
           </h3>
           <div className="space-y-1">
@@ -252,38 +256,38 @@ function SidebarContent({
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200",
                     isActive
-                      ? "bg-card text-blue-700 dark:text-blue-300 border-r-2 border-blue-700 dark:border-blue-400"
-                      : "text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-300"
+                      ? "bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-r-2 border-blue-500 dark:border-blue-400 shadow-sm"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-300"
                   )}
                 >
                   <item.icon
                     className={cn(
-                      "mr-3 h-5 w-5 flex-shrink-0",
+                      "mr-3 h-5 w-5 flex-shrink-0 transition-colors",
                       isActive
-                        ? "text-blue-700 dark:text-blue-400"
-                        : "text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-400"
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400"
                     )}
                   />
                   {item.name}
                   {item.name === "Analytics" && analytics > 0 && (
-                    <span className="ml-auto bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full">
+                    <span className="ml-auto bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full font-medium">
                       {analytics}
                     </span>
                   )}
                   {item.name === "Products" && products > 0 && (
-                    <span className="ml-auto bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full">
+                    <span className="ml-auto bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full font-medium">
                       {products}
                     </span>
                   )}
                   {item.name === "Orders" && orders > 0 && (
-                    <span className="ml-auto bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full">
+                    <span className="ml-auto bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full font-medium">
                       {orders}
                     </span>
                   )}
                   {item.name === "Revenue" && revenue > 0 && (
-                    <span className="ml-auto bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full">
+                    <span className="ml-auto bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full font-medium">
                       {revenue}
                     </span>
                   )}
@@ -296,7 +300,7 @@ function SidebarContent({
         {/* Users Navigation (Admin Only) */}
         {userRole === "admin" && usersNavigation.length > 0 && (
         <div>
-          <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+          <h3 className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-3">
             USERS
           </h3>
           <div className="space-y-1">
@@ -307,23 +311,23 @@ function SidebarContent({
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200",
                     isActive
-                      ? "bg-card text-blue-700 dark:text-blue-300 border-r-2 border-blue-700 dark:border-blue-400"
-                      : "text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-300"
+                      ? "bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-r-2 border-blue-500 dark:border-blue-400 shadow-sm"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-300"
                   )}
                 >
                   <item.icon
                     className={cn(
-                      "mr-3 h-5 w-5 flex-shrink-0",
+                      "mr-3 h-5 w-5 flex-shrink-0 transition-colors",
                       isActive
-                        ? "text-blue-700 dark:text-blue-400"
-                        : "text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-400"
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400"
                     )}
                   />
                   {item.name}
                     {item.name === "Users List" && users > 0 && (
-                  <span className="ml-auto bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full">
+                  <span className="ml-auto bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full font-medium">
                     {users}
                   </span>
                     )}
@@ -336,7 +340,7 @@ function SidebarContent({
 
         {/* Settings Navigation */}
         <div>
-          <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+          <h3 className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-3">
             SETTINGS
           </h3>
           <div className="space-y-1">
@@ -347,28 +351,28 @@ function SidebarContent({
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200",
                     isActive
-                      ? "bg-card text-blue-700 dark:text-blue-300 border-r-2 border-blue-700 dark:border-blue-400"
-                      : "text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-300"
+                      ? "bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 border-r-2 border-blue-500 dark:border-blue-400 shadow-sm"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-700 dark:hover:text-blue-300"
                   )}
                 >
                   <item.icon
                     className={cn(
-                      "mr-3 h-5 w-5 flex-shrink-0",
+                      "mr-3 h-5 w-5 flex-shrink-0 transition-colors",
                       isActive
-                        ? "text-blue-700 dark:text-blue-400"
-                        : "text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-400"
+                        ? "text-blue-600 dark:text-blue-400"
+                        : "text-gray-500 dark:text-gray-400 group-hover:text-blue-500 dark:group-hover:text-blue-400"
                     )}
                   />
                   {item.name}
                   {item.name === "Licenses" && licenses > 0 && (
-                    <span className="ml-auto bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full">
+                    <span className="ml-auto bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full font-medium">
                       {licenses}
                     </span>
                   )}
                   {item.name === "Subscriptions" && subscriptions > 0 && (
-                    <span className="ml-auto bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full">
+                    <span className="ml-auto bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full font-medium">
                       {subscriptions}
                     </span>
                   )}

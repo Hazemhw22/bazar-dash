@@ -1,51 +1,56 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { supabase } from "@/lib/supabase"
-import { Eye, EyeOff, Mail, Lock } from "lucide-react"
-import { safeCreateNotification, NotificationTemplates } from "@/lib/notifications"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/lib/supabase";
+import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import {
+  safeCreateNotification,
+  NotificationTemplates,
+} from "@/lib/notifications";
 
 export default function SignIn() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [rememberMe, setRememberMe] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const router = useRouter()
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
 
   const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError("")
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      })
+      });
 
       if (error) {
-        setError(error.message)
+        setError(error.message);
       } else {
         // Create notification for successful signin
-        await safeCreateNotification(NotificationTemplates.signInSuccess(email))
-        router.push("/dashboard")
+        await safeCreateNotification(
+          NotificationTemplates.signInSuccess(email)
+        );
+        router.push("/dashboard");
       }
     } catch (err) {
-      setError("An unexpected error occurred")
+      setError("An unexpected error occurred");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div
@@ -59,20 +64,36 @@ export default function SignIn() {
     >
       <div className="flex w-full max-w-6xl h-[700px] rounded-2xl overflow-hidden shadow-2xl">
         {/* Left: Gradient Card with Diagonal Edge */}
-        <div className="relative w-[48%] flex flex-col items-center justify-between py-0 px-0 overflow-hidden" style={{ minHeight: '100%' }}>
+        <div
+          className="relative w-[48%] flex flex-col items-center justify-between py-0 px-0 overflow-hidden"
+          style={{ minHeight: "100%" }}
+        >
           {/* Diagonal cut gradient background, matching the attached image */}
-          <div className="absolute inset-0 z-0" style={{ background: 'linear-gradient(135deg, #F72585 0%, #7209B7 60%, #4895EF 100%)', clipPath: 'polygon(0 0, 100% 0, 100% 85%, 0 100%)' }} />
+          <div
+            className="absolute inset-0 z-0"
+            style={{
+              background:
+                "linear-gradient(135deg, #F72585 0%, #7209B7 60%, #4895EF 100%)",
+              clipPath: "polygon(0 0, 100% 0, 100% 85%, 0 100%)",
+            }}
+          />
           <div className="relative z-10 w-full flex flex-col items-center pt-12">
             <img src="/pazar.png" alt="BAZAR Logo" className="w-52 h-52 " />
           </div>
           <div className="relative z-10 flex-1 flex flex-col items-center justify-center w-full pb-12">
-            <img src="/LOGINIMG.png" alt="Sign In" className="w-[420px] h-[320px] object-contain" />
+            <img
+              src="/LOGINIMG.png"
+              alt="Sign In"
+              className="w-[420px] h-[320px] object-contain"
+            />
           </div>
         </div>
         {/* Right: Form on dark semi-transparent background */}
         <div className="flex-1 flex flex-col justify-center px-20 py-12 bg-[#181C2F]">
           <h2 className="text-4xl font-bold text-[#4F7FFF] mb-2">SIGN IN</h2>
-          <p className="text-[#A0AEC0] mb-8 text-lg">Enter your email and password to login</p>
+          <p className="text-[#A0AEC0] mb-8 text-lg">
+            Enter your email and password to login
+          </p>
           <form onSubmit={handleSignIn} className="space-y-6">
             <div className="space-y-4">
               <div>
@@ -162,7 +183,7 @@ export default function SignIn() {
             </Link>
           </div>
           <div className="text-center text-sm text-[#A0AEC0] mt-8">
-            © 2025.TCSS 
+            © 2025.TCSS
           </div>
         </div>
       </div>

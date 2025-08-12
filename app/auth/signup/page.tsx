@@ -1,33 +1,36 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { supabase } from "@/lib/supabase"
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react"
-import { safeCreateNotification, NotificationTemplates } from "@/lib/notifications"
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { supabase } from "@/lib/supabase";
+import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import {
+  safeCreateNotification,
+  NotificationTemplates,
+} from "@/lib/notifications";
 
 export default function SignUp() {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
-  const [newsletter, setNewsletter] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
-  const [isAdmin, setIsAdmin] = useState(false)
-  const router = useRouter()
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [newsletter, setNewsletter] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const router = useRouter();
 
   const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError("")
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -38,53 +41,55 @@ export default function SignUp() {
             full_name: name,
           },
         },
-      })
+      });
 
       if (error) {
-        setError(error.message)
-        return
+        setError(error.message);
+        return;
       }
 
       // Create profile
       if (data.user) {
         // Create notification for successful signup
-        await safeCreateNotification(NotificationTemplates.signUpSuccess(email))
-        console.log("🔍 Debug: isAdmin state =", isAdmin)
-        console.log("🔍 Debug: Checkbox value =", isAdmin)
-        
-        const selectedRole = isAdmin ? "admin" : "customer"
-        console.log("🔍 Debug: Selected role =", selectedRole)
-        
+        await safeCreateNotification(
+          NotificationTemplates.signUpSuccess(email)
+        );
+        console.log("🔍 Debug: isAdmin state =", isAdmin);
+        console.log("🔍 Debug: Checkbox value =", isAdmin);
+
+        const selectedRole = isAdmin ? "admin" : "customer";
+        console.log("🔍 Debug: Selected role =", selectedRole);
+
         const profileData = {
-            id: data.user.id,
+          id: data.user.id,
           full_name: name.trim(),
           email: email.trim(),
           role: selectedRole,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        }
+        };
 
-        console.log("Creating profile with data:", profileData)
+        console.log("Creating profile with data:", profileData);
 
         // Try to create profile with upsert to handle existing profiles
         const { error: profileError } = await supabase
           .from("profiles")
           .upsert(profileData, {
-            onConflict: 'id',
-            ignoreDuplicates: false
-          })
+            onConflict: "id",
+            ignoreDuplicates: false,
+          });
 
-          if (profileError) {
-            console.error("Profile creation error:", profileError)
+        if (profileError) {
+          console.error("Profile creation error:", profileError);
           console.error("Error details:", {
             code: profileError.code,
             message: profileError.message,
             details: profileError.details,
-            hint: profileError.hint
-          })
-          
+            hint: profileError.hint,
+          });
+
           // Try alternative approach: update existing profile if it exists
-          console.log("Trying to update existing profile...")
+          console.log("Trying to update existing profile...");
           const { error: updateError } = await supabase
             .from("profiles")
             .update({
@@ -93,26 +98,33 @@ export default function SignUp() {
               role: selectedRole,
               updated_at: new Date().toISOString(),
             })
-            .eq('id', data.user.id)
+            .eq("id", data.user.id);
 
           if (updateError) {
-            console.error("Profile update error:", updateError)
-            console.warn("Profile creation/update failed, but user account was created successfully")
+            console.error("Profile update error:", updateError);
+            console.warn(
+              "Profile creation/update failed, but user account was created successfully"
+            );
           } else {
-            console.log("Profile updated successfully with role:", selectedRole)
+            console.log(
+              "Profile updated successfully with role:",
+              selectedRole
+            );
           }
         } else {
-          console.log("Profile created successfully with role:", selectedRole)
+          console.log("Profile created successfully with role:", selectedRole);
         }
       }
 
-      router.push("/auth/signin?message=Check your email to confirm your account")
+      router.push(
+        "/auth/signin?message=Check your email to confirm your account"
+      );
     } catch (err) {
-      setError("An unexpected error occurred")
+      setError("An unexpected error occurred");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div

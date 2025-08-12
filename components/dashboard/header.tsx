@@ -114,38 +114,12 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
   const avatarUrl = profileAvatarUrl || "/placeholder-user.jpg";
 
   return (
-    <header className="bg-background border-b border-border px-6 py-3 text-foreground">
-      <div className="flex items-center justify-between">
-        {/* Search */}
-        <div className="flex-1 max-w-lg">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input
-              type="text"
-              placeholder="Search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-card border-0 focus:bg-background text-foreground"
-            />
-          </div>
-        </div>
+    <header className="bg-background border-b border-border px-3 sm:px-4 md:px-6 py-3 text-foreground">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0">
+     
 
-        {/* Right side */}
-        <div className="relative flex items-center space-x-4">
-          {/* Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleTheme}
-            className="h-9 w-9 text-foreground"
-          >
-            {mounted && theme === "dark" ? (
-              <Sun className="h-5 w-5" />
-            ) : (
-              <Moon className="h-5 w-5" />
-            )}
-          </Button>
-
+        {/* Icons - Mobile: Right side above search, Desktop: Right side */}
+        <div className="relative flex items-center space-x-2 sm:space-x-4 order-2 sm:order-2 w-full sm:w-auto justify-end sm:justify-start">
           {/* Notifications */}
           <DropdownMenu
             open={open}
@@ -228,7 +202,21 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* User menu */}
+          {/* Theme Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleTheme}
+            className="h-9 w-9 text-foreground hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            {mounted && theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
+          </Button>
+
+          {/* User menu - Now last */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -274,6 +262,20 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        </div>
+
+        {/* Search */}
+        <div className="flex-1 w-full sm:max-w-lg order-2 sm:order-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              type="text"
+              placeholder="Search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 bg-card border-0 focus:bg-background text-foreground w-full"
+            />
+          </div>
         </div>
       </div>
     </header>

@@ -63,7 +63,7 @@ export default function DashboardLayout({
       <DashboardSidebar />
       <div className="lg:pl-64">
         <DashboardHeader user={user} />
-        <main className="p-6 bg-gray-50 dark:bg-gray-900">{children}</main>
+        <main className="p-3 sm:p-4 md:p-6 bg-gray-50 dark:bg-gray-900">{children}</main>
       </div>
     </div>
   )
