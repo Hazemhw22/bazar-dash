@@ -85,8 +85,15 @@ export default function StoreOwnerSignUp() {
 
     try {
       // Validate required fields
-      if (!fullName.trim() || !email.trim() || !password.trim() || !storeName.trim()) {
-        setError("Please fill in all required fields")
+      if (
+        !fullName.trim() ||
+        !email.trim() ||
+        !password.trim() ||
+        !storeName.trim() ||
+        !phoneNumber.trim() ||
+        !address.trim()
+      ) {
+        setError("Please fill in all required fields marked with *")
         setLoading(false)
         return
       }
@@ -200,10 +207,10 @@ export default function StoreOwnerSignUp() {
         backgroundRepeat: "no-repeat",
       }}
     >
-      <div className="flex w-full max-w-6xl h-[700px] rounded-2xl overflow-hidden shadow-2xl">
-        {/* Left: Diagonal Card with Colored Lines */}
+      <div className="flex flex-col md:flex-row w-full max-w-6xl md:h-[700px] h-auto rounded-2xl overflow-hidden shadow-2xl m-4 md:m-0">
+        {/* Left: Diagonal Card with Colored Lines (hidden on mobile) */}
         <div
-          className="relative w-[48%] flex flex-col items-center justify-between py-0 px-0 overflow-hidden"
+          className="relative hidden md:flex md:w-[48%] flex-col items-center justify-between py-0 px-0 overflow-hidden"
           style={{ minHeight: "100%" }}
         >
           {/* Diagonal cut gradient background, same as signin */}
@@ -226,10 +233,21 @@ export default function StoreOwnerSignUp() {
             />
           </div>
         </div>
-        {/* Right: Form on dark background (identical to signup) */}
-        <div className="flex-1 flex flex-col justify-center px-20 py-12 bg-[#181C2F]">
+        {/* Right: Form on dark background */}
+        <div className="flex-1 flex flex-col justify-center px-6 md:px-20 py-8 md:py-12 bg-[#181C2F]">
+          {/* Mobile brand header */}
+          <div className="md:hidden mb-4 flex items-center gap-2">
+            <div className="bg-[#232A47] p-2 rounded-lg">
+              <img src="/pazar.png" alt="BAZAR Logo" className="w-10 h-10" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-[#4F7FFF] leading-tight">STORE OWNER SIGN UP</h2>
+              <p className="text-[#A0AEC0] text-sm">Create your store owner account</p>
+            </div>
+          </div>
+
           <div className="w-full max-w-xl mx-auto space-y-2 flex flex-col justify-center h-full">
-            <div className="text-center">
+            <div className="text-center hidden md:block">
               <h2 className="text-3xl font-bold text-[#4F7FFF] mb-2">
                 STORE OWNER SIGN UP
               </h2>
@@ -237,13 +255,13 @@ export default function StoreOwnerSignUp() {
                 Create your store owner account 
               </p>
             </div>
-            <form onSubmit={handleSignUp} className="space-y-8">
-              {/* Account Information (no card, just like signup) */}
+            <form onSubmit={handleSignUp} className="space-y-6 sm:space-y-8">
+              {/* Account Information */}
               <div className="space-y-6 text-base">
                 <div>
                   <Label
                     htmlFor="fullName"
-                    className="text-base font-medium text-[#A0AEC0]"
+                    className="text-sm sm:text-base font-medium text-[#A0AEC0]"
                   >
                     Full Name *
                   </Label>
@@ -254,7 +272,7 @@ export default function StoreOwnerSignUp() {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Enter your full name"
-                      className="pl-10 h-12 bg-[#232A47] border-0 text-white"
+                      className="pl-10 h-11 sm:h-12 bg-[#232A47] border-0 text-white"
                       required
                     />
                     <User className="absolute left-3 top-3 h-5 w-5 text-[#4F7FFF]" />
@@ -263,7 +281,7 @@ export default function StoreOwnerSignUp() {
                 <div>
                   <Label
                     htmlFor="email"
-                    className="text-base font-medium text-[#A0AEC0]"
+                    className="text-sm sm:text-base font-medium text-[#A0AEC0]"
                   >
                     Email Address *
                   </Label>
@@ -274,7 +292,7 @@ export default function StoreOwnerSignUp() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="store@example.com"
-                      className="pl-10 h-12 bg-[#232A47] border-0 text-white"
+                      className="pl-10 h-11 sm:h-12 bg-[#232A47] border-0 text-white"
                       required
                     />
                     <Mail className="absolute left-3 top-3 h-5 w-5 text-[#4F7FFF]" />
@@ -283,7 +301,7 @@ export default function StoreOwnerSignUp() {
                 <div>
                   <Label
                     htmlFor="password"
-                    className="text-base font-medium text-[#A0AEC0]"
+                    className="text-sm sm:text-base font-medium text-[#A0AEC0]"
                   >
                     Password *
                   </Label>
@@ -294,7 +312,7 @@ export default function StoreOwnerSignUp() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="pl-10 pr-10 h-12 bg-[#232A47] border-0 text-white"
+                      className="pl-10 pr-10 h-11 sm:h-12 bg-[#232A47] border-0 text-white"
                       required
                     />
                     <Lock className="absolute left-3 top-3 h-5 w-5 text-[#4F7FFF]" />
@@ -324,34 +342,34 @@ export default function StoreOwnerSignUp() {
                     Information
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl bg-[#232A47] border-none shadow-2xl">
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center space-x-2 text-white text-2xl font-bold">
+                <DialogContent className="sm:max-w-2xl w-[94vw] sm:w-auto h-auto sm:h-auto max-h-[88dvh] sm:max-h-[80vh] p-4 sm:p-6 bg-[#232A47] border-none shadow-2xl rounded-xl sm:rounded-lg">
+                  <DialogHeader className="sticky top-0 z-10 bg-[#232A47] pb-2 px-2 sm:px-0">
+                    <DialogTitle className="flex items-center space-x-2 text-white text-xl sm:text-2xl font-bold">
                       <Store className="w-6 h-6 text-[#4F7FFF]" />
                       <span>Store Information</span>
                     </DialogTitle>
                     <p className="text-[#A0AEC0] mt-2 text-base">
-                      Configure your store details and contact information.
+                      Configure her store details and contact information.
                     </p>
                   </DialogHeader>
-                  <hr className="my-6 border-[#353B5C]" />
+                  <hr className="my-4 sm:my-6 border-[#353B5C]" />
 
-                  <div className="space-y-6 max-h-96 overflow-y-auto pr-2">
+                  <div className="space-y-6 max-h-[calc(85dvh-140px)] sm:max-h-[70vh] overflow-y-auto pr-2">
                     {/* Basic Information Section */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-white flex items-center">
+          <div className="space-y-4">
+                      <h3 className="text-base sm:text-lg font-semibold text-white flex items-center">
                         <Store className="w-5 h-5 text-[#4F7FFF] mr-2" />
                         Basic Information
                       </h3>
-                      <div className="p-4 rounded-xl bg-[#1A1F35] border border-[#353B5C]">
+                      <p className="text-xs text-[#A0AEC0]">Provide her store name and a short description.</p>
+                      <div className="p-3 sm:p-4 rounded-xl bg-[#1A1F35] border border-[#353B5C]">
                         <div className="space-y-4">
                           <div>
                             <Label
                               htmlFor="storeName"
-                              className="text-sm font-semibold text-[#A0AEC0] flex items-center"
+                              className="text-xs sm:text-sm font-semibold text-[#A0AEC0] flex items-center"
                             >
-                              Store Name{" "}
-                              <span className="text-red-400 ml-1">*</span>
+                    Store Name <span className="text-red-400 ml-1">*</span>
                             </Label>
                             <div className="relative mt-2">
                               <Input
@@ -369,16 +387,14 @@ export default function StoreOwnerSignUp() {
                           <div>
                             <Label
                               htmlFor="storeDescription"
-                              className="text-sm font-semibold text-[#A0AEC0]"
+                              className="text-xs sm:text-sm font-semibold text-[#A0AEC0]"
                             >
                               Store Description
                             </Label>
                             <Textarea
                               id="storeDescription"
                               value={storeDescription}
-                              onChange={(e) =>
-                                setStoreDescription(e.target.value)
-                              }
+                              onChange={(e) => setStoreDescription(e.target.value)}
                               placeholder="Describe your store, products, and what makes you unique..."
                               rows={3}
                               className="mt-2 bg-[#232A47] border-[#353B5C] text-white focus:border-[#4F7FFF] focus:ring-[#4F7FFF]"
@@ -393,18 +409,19 @@ export default function StoreOwnerSignUp() {
 
                     {/* Contact Information Section */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-white flex items-center">
+                      <h3 className="text-base sm:text-lg font-semibold text-white flex items-center">
                         <Phone className="w-5 h-5 text-[#4F7FFF] mr-2" />
                         Contact Information
                       </h3>
-                      <div className="p-4 rounded-xl bg-[#1A1F35] border border-[#353B5C]">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <p className="text-xs text-[#A0AEC0]">Add her phone number and address so customers can reach her.</p>
+                      <div className="p-3 sm:p-4 rounded-xl bg-[#1A1F35] border border-[#353B5C]">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                           <div>
                             <Label
                               htmlFor="phoneNumber"
-                              className="text-sm font-semibold text-[#A0AEC0]"
+                              className="text-xs sm:text-sm font-semibold text-[#A0AEC0] flex items-center"
                             >
-                              Phone Number
+                    Phone Number <span className="text-red-400 ml-1">*</span>
                             </Label>
                             <div className="relative mt-2">
                               <Input
@@ -413,7 +430,8 @@ export default function StoreOwnerSignUp() {
                                 value={phoneNumber}
                                 onChange={(e) => setPhoneNumber(e.target.value)}
                                 placeholder="+1234567890"
-                                className="pl-10 h-11 bg-[#232A47] border-[#353B5C] text-white focus:border-[#4F7FFF] focus:ring-[#4F7FFF]"
+                      className="pl-10 h-11 bg-[#232A47] border-[#353B5C] text-white focus:border-[#4F7FFF] focus:ring-[#4F7FFF]"
+                      required
                               />
                               <Phone className="absolute left-3 top-3 h-5 w-5 text-[#4F7FFF]" />
                             </div>
@@ -421,14 +439,11 @@ export default function StoreOwnerSignUp() {
                           <div>
                             <Label
                               htmlFor="timezone"
-                              className="text-sm font-semibold text-[#A0AEC0]"
+                              className="text-xs sm:text-sm font-semibold text-[#A0AEC0]"
                             >
                               Timezone
                             </Label>
-                            <Select
-                              value={timezone}
-                              onValueChange={setTimezone}
-                            >
+                            <Select value={timezone} onValueChange={setTimezone}>
                               <SelectTrigger className="mt-2 h-11 bg-[#232A47] border-[#353B5C] text-white focus:border-[#4F7FFF] focus:ring-[#4F7FFF]">
                                 <SelectValue />
                               </SelectTrigger>
@@ -449,9 +464,9 @@ export default function StoreOwnerSignUp() {
                         <div className="mt-4">
                           <Label
                             htmlFor="address"
-                            className="text-sm font-semibold text-[#A0AEC0]"
+                            className="text-xs sm:text-sm font-semibold text-[#A0AEC0] flex items-center"
                           >
-                            Store Address
+                  Store Address <span className="text-red-400 ml-1">*</span>
                           </Label>
                           <div className="relative mt-2">
                             <Textarea
@@ -460,26 +475,29 @@ export default function StoreOwnerSignUp() {
                               onChange={(e) => setAddress(e.target.value)}
                               placeholder="Enter your complete store address"
                               rows={2}
-                              className="pl-10 bg-[#232A47] border-[#353B5C] text-white focus:border-[#4F7FFF] focus:ring-[#4F7FFF]"
+                    className="pl-10 bg-[#232A47] border-[#353B5C] text-white focus:border-[#4F7FFF] focus:ring-[#4F7FFF]"
+                    required
                             />
                             <MapPin className="absolute left-3 top-3 h-5 w-5 text-[#4F7FFF]" />
                           </div>
                         </div>
+              <p className="text-xs text-[#A0AEC0] mt-3">Fields marked with <span className="text-red-400">*</span> are required.</p>
                       </div>
                     </div>
 
                     {/* Delivery Settings Section */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-white flex items-center">
+                      <h3 className="text-base sm:text-lg font-semibold text-white flex items-center">
                         <Clock className="w-5 h-5 text-[#4F7FFF] mr-2" />
                         Delivery Settings
                       </h3>
-                      <div className="p-4 rounded-xl bg-[#1A1F35] border border-[#353B5C]">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <p className="text-xs text-[#A0AEC0]">Set her expected delivery time range shown to customers.</p>
+                      <div className="p-3 sm:p-4 rounded-xl bg-[#1A1F35] border border-[#353B5C]">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                           <div>
                             <Label
                               htmlFor="deliveryTimeFrom"
-                              className="text-sm font-semibold text-[#A0AEC0]"
+                              className="text-xs sm:text-sm font-semibold text-[#A0AEC0]"
                             >
                               Minimum Delivery Time (minutes)
                             </Label>
@@ -487,9 +505,7 @@ export default function StoreOwnerSignUp() {
                               id="deliveryTimeFrom"
                               type="number"
                               value={deliveryTimeFrom}
-                              onChange={(e) =>
-                                setDeliveryTimeFrom(e.target.value)
-                              }
+                              onChange={(e) => setDeliveryTimeFrom(e.target.value)}
                               placeholder="30"
                               className="mt-2 h-11 bg-[#232A47] border-[#353B5C] text-white focus:border-[#4F7FFF] focus:ring-[#4F7FFF]"
                             />
@@ -497,7 +513,7 @@ export default function StoreOwnerSignUp() {
                           <div>
                             <Label
                               htmlFor="deliveryTimeTo"
-                              className="text-sm font-semibold text-[#A0AEC0]"
+                              className="text-xs sm:text-sm font-semibold text-[#A0AEC0]"
                             >
                               Maximum Delivery Time (minutes)
                             </Label>
@@ -505,9 +521,7 @@ export default function StoreOwnerSignUp() {
                               id="deliveryTimeTo"
                               type="number"
                               value={deliveryTimeTo}
-                              onChange={(e) =>
-                                setDeliveryTimeTo(e.target.value)
-                              }
+                              onChange={(e) => setDeliveryTimeTo(e.target.value)}
                               placeholder="60"
                               className="mt-2 h-11 bg-[#232A47] border-[#353B5C] text-white focus:border-[#4F7FFF] focus:ring-[#4F7FFF]"
                             />
@@ -515,9 +529,7 @@ export default function StoreOwnerSignUp() {
                         </div>
                         <div className="mt-4 p-3 rounded-lg bg-[#232A47] border border-[#353B5C]">
                           <p className="text-xs text-[#A0AEC0]">
-                            <strong>Delivery Range:</strong>{" "}
-                            {deliveryTimeFrom || 30} - {deliveryTimeTo || 60}{" "}
-                            minutes
+                            <strong>Delivery Range:</strong> {deliveryTimeFrom || 30} - {deliveryTimeTo || 60} minutes
                           </p>
                         </div>
                       </div>
@@ -525,23 +537,22 @@ export default function StoreOwnerSignUp() {
 
                     {/* Store Status Section */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-white flex items-center">
+                      <h3 className="text-base sm:text-lg font-semibold text-white flex items-center">
                         <Save className="w-5 h-5 text-[#4F7FFF] mr-2" />
                         Store Status
                       </h3>
-                      <div className="p-4 rounded-xl bg-[#1A1F35] border border-[#353B5C]">
-                        <div className="flex items-center justify-between">
+                      <p className="text-xs text-[#A0AEC0]">Control whether her store is visible to customers.</p>
+                      <div className="p-3 sm:p-4 rounded-xl bg-[#1A1F35] border border-[#353B5C]">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                           <div>
                             <Label
                               htmlFor="isActive"
-                              className="text-sm font-semibold text-[#A0AEC0]"
+                              className="text-xs sm:text-sm font-semibold text-[#A0AEC0]"
                             >
                               Store Status
                             </Label>
                             <p className="text-xs text-[#A0AEC0] mt-1">
-                              {isActive
-                                ? "Your store will be visible to customers"
-                                : "Your store will be hidden from customers"}
+                              {isActive ? "Her store will be visible to customers" : "Her store will be hidden from customers"}
                             </p>
                           </div>
                           <div className="flex items-center space-x-3">
@@ -551,11 +562,7 @@ export default function StoreOwnerSignUp() {
                               onCheckedChange={setIsActive}
                               className="data-[state=checked]:bg-[#4F7FFF]"
                             />
-                            <span
-                              className={`text-sm font-medium ${
-                                isActive ? "text-green-400" : "text-red-400"
-                              }`}
-                            >
+                            <span className={`text-sm font-medium ${isActive ? "text-green-400" : "text-red-400"}`}>
                               {isActive ? "Active" : "Inactive"}
                             </span>
                           </div>
@@ -566,47 +573,30 @@ export default function StoreOwnerSignUp() {
 
                   {/* Summary */}
                   <div className="mt-6 p-4 rounded-lg bg-[#1A1F35] border border-[#353B5C]">
-                    <h4 className="text-sm font-semibold text-[#A0AEC0] mb-2">
-                      Store Summary
-                    </h4>
+                    <h4 className="text-sm font-semibold text-[#A0AEC0] mb-2">Store Summary</h4>
                     <div className="text-xs text-[#A0AEC0] space-y-1">
                       <div>Store Name: {storeName || "Not set"}</div>
                       <div>Contact: {phoneNumber || "Not provided"}</div>
                       <div>
-                        Timezone:{" "}
-                        {TIMEZONES.find((tz) => tz.value === timezone)?.label ||
-                          timezone}
+                        Timezone: {TIMEZONES.find((tz) => tz.value === timezone)?.label || timezone}
                       </div>
                       <div>
-                        Status:{" "}
-                        <span
-                          className={
-                            isActive ? "text-green-400" : "text-red-400"
-                          }
-                        >
-                          {isActive ? "Active" : "Inactive"}
-                        </span>
+                        Status: <span className={isActive ? "text-green-400" : "text-red-400"}>{isActive ? "Active" : "Inactive"}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-end space-x-3 mt-6">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="px-6 py-2 text-[#4F7FFF] border-[#4F7FFF] hover:bg-[#4F7FFF] hover:text-white"
-                    >
+                  <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
+                    <Button type="button" variant="outline" className="px-6 py-2 text-[#4F7FFF] border-[#4F7FFF] hover:bg-[#4F7FFF] hover:text-white">
                       Reset
                     </Button>
-                    <Button
-                      type="button"
-                      className="px-6 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-blue-600 text-white font-semibold hover:from-pink-600 hover:to-blue-700"
-                    >
+                    <Button type="button" className="px-6 py-2 rounded-lg bg-gradient-to-r from-pink-500 to-blue-600 text-white font-semibold hover:from-pink-600 hover:to-blue-700">
                       Save Information
                     </Button>
                   </div>
                 </DialogContent>
               </Dialog>
+
               {/* Business Hours Dialog */}
               <Dialog>
                 <DialogTrigger asChild>
@@ -618,17 +608,17 @@ export default function StoreOwnerSignUp() {
                     Business Hours
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl bg-[#232A47] border-none shadow-2xl">
-                  <DialogHeader>
+                <DialogContent className="sm:max-w-2xl w-[92vw] sm:w-auto h-auto sm:h-auto max-h-[85dvh] sm:max-h-[80vh] p-3 sm:p-6 bg-[#232A47] border-none shadow-2xl rounded-xl sm:rounded-lg">
+                  <DialogHeader className="sticky top-0 z-10 bg-[#232A47] pb-2">
                     <DialogTitle className="flex items-center space-x-2 text-white text-2xl font-bold">
                       <Clock className="w-6 h-6 text-[#4F7FFF]" />
                       <span>Business Hours</span>
                     </DialogTitle>
                     <p className="text-[#A0AEC0] mt-2 text-base">
-                      Set your weekly business hours and operating schedule.
+                      Set her weekly business hours and operating schedule.
                     </p>
                   </DialogHeader>
-                  <hr className="my-6 border-[#353B5C]" />
+                  <hr className="my-4 sm:my-6 border-[#353B5C]" />
 
                   {/* Quick Actions */}
                   <div className="flex flex-wrap gap-2 mb-6">
@@ -683,14 +673,14 @@ export default function StoreOwnerSignUp() {
                     </Button>
                   </div>
 
-                  <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                  <div className="space-y-3 max-h-[calc(85dvh-140px)] sm:max-h-[70vh] overflow-y-auto pr-2">
                     {workingHours.map((hours, index) => (
                       <div
                         key={hours.day}
-                        className="flex items-center justify-between p-4 rounded-xl bg-[#1A1F35] border border-[#353B5C] hover:border-[#4F7FFF] transition-all"
+                        className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-4 rounded-xl bg-[#1A1F35] border border-[#353B5C] hover:border-[#4F7FFF] transition-all"
                       >
                         <div className="flex items-center space-x-4 flex-1">
-                          <div className="w-20">
+                          <div className="w-24">
                             <Label className="text-sm font-semibold text-[#A0AEC0]">
                               {hours.day}
                             </Label>
@@ -721,7 +711,7 @@ export default function StoreOwnerSignUp() {
                         </div>
 
                         {hours.is_open && (
-                          <div className="flex items-center space-x-3">
+                          <div className="flex flex-wrap items:center gap-3">
                             <div className="flex items-center space-x-2">
                               <Input
                                 type="time"
@@ -773,16 +763,13 @@ export default function StoreOwnerSignUp() {
                     </h4>
                     <div className="text-xs text-[#A0AEC0] space-y-1">
                       <div>
-                        Open Days:{" "}
-                        {workingHours.filter((h) => h.is_open).length}/7
+                        Open Days: {workingHours.filter((h) => h.is_open).length}/7
                       </div>
                       <div>
-                        Closed Days:{" "}
-                        {workingHours.filter((h) => !h.is_open).length}/7
+                        Closed Days: {workingHours.filter((h) => !h.is_open).length}/7
                       </div>
                       <div>
-                        Most Common Hours:{" "}
-                        {(() => {
+                        Most Common Hours: {(() => {
                           const hours = workingHours
                             .filter((h) => h.is_open)
                             .map((h) => `${h.open_time}-${h.close_time}`);
@@ -799,7 +786,7 @@ export default function StoreOwnerSignUp() {
                     </div>
                   </div>
 
-                  <div className="flex justify-end space-x-3 mt-6">
+                  <div className="flex flex-col sm:flex-row justify-end gap-3 mt-6">
                     <Button
                       type="button"
                       variant="outline"
@@ -823,7 +810,7 @@ export default function StoreOwnerSignUp() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 rounded-lg bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white font-bold text-lg tracking-wide shadow"
+                className="w-full h-12 rounded-lg bg-gradient-to-r from-pink-500 to-blue-600 hover:from-pink-600 hover:to-blue-700 text-white font-bold text-base sm:text-lg tracking-wide shadow"
               >
                 {loading ? "Creating account..." : "CREATE STORE OWNER ACCOUNT"}
               </Button>

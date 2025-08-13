@@ -54,11 +54,8 @@ export default function SignUp() {
         await safeCreateNotification(
           NotificationTemplates.signUpSuccess(email)
         );
-        console.log("🔍 Debug: isAdmin state =", isAdmin);
-        console.log("🔍 Debug: Checkbox value =", isAdmin);
 
         const selectedRole = isAdmin ? "admin" : "customer";
-        console.log("🔍 Debug: Selected role =", selectedRole);
 
         const profileData = {
           id: data.user.id,
@@ -69,8 +66,6 @@ export default function SignUp() {
           updated_at: new Date().toISOString(),
         };
 
-        console.log("Creating profile with data:", profileData);
-
         // Try to create profile with upsert to handle existing profiles
         const { error: profileError } = await supabase
           .from("profiles")
@@ -80,17 +75,8 @@ export default function SignUp() {
           });
 
         if (profileError) {
-          console.error("Profile creation error:", profileError);
-          console.error("Error details:", {
-            code: profileError.code,
-            message: profileError.message,
-            details: profileError.details,
-            hint: profileError.hint,
-          });
-
           // Try alternative approach: update existing profile if it exists
-          console.log("Trying to update existing profile...");
-          const { error: updateError } = await supabase
+          await supabase
             .from("profiles")
             .update({
               full_name: name.trim(),
@@ -99,20 +85,6 @@ export default function SignUp() {
               updated_at: new Date().toISOString(),
             })
             .eq("id", data.user.id);
-
-          if (updateError) {
-            console.error("Profile update error:", updateError);
-            console.warn(
-              "Profile creation/update failed, but user account was created successfully"
-            );
-          } else {
-            console.log(
-              "Profile updated successfully with role:",
-              selectedRole
-            );
-          }
-        } else {
-          console.log("Profile created successfully with role:", selectedRole);
         }
       }
 
@@ -136,10 +108,10 @@ export default function SignUp() {
         backgroundRepeat: "no-repeat",
       }}
     >
-      <div className="flex w-full max-w-6xl h-[700px] rounded-2xl overflow-hidden shadow-2xl">
-        {/* Left: Diagonal Card with Colored Lines */}
+      <div className="flex flex-col md:flex-row w-full max-w-6xl md:h-[700px] h-auto rounded-2xl overflow-hidden shadow-2xl m-4 md:m-0">
+        {/* Left: Diagonal Card with Colored Lines (hidden on mobile) */}
         <div
-          className="relative w-[48%] flex flex-col items-center justify-between py-0 px-0 overflow-hidden"
+          className="relative hidden md:flex md:w-[48%] flex-col items-center justify-between py-0 px-0 overflow-hidden"
           style={{ minHeight: "100%" }}
         >
           {/* Diagonal cut gradient background, same as signin */}
@@ -163,9 +135,20 @@ export default function SignUp() {
           </div>
         </div>
         {/* Right: Form on dark semi-transparent background */}
-        <div className="flex-1 flex flex-col justify-center px-20 py-12 bg-[#181C2F]">
-          <h2 className="text-4xl font-bold text-[#4F7FFF] mb-2">SIGN UP</h2>
-          <p className="text-[#A0AEC0] mb-8 text-lg">
+        <div className="flex-1 flex flex-col justify-center px-6 md:px-20 py-8 md:py-12 bg-[#181C2F]">
+          {/* Mobile brand header */}
+          <div className="md:hidden mb-4 flex items-center gap-2">
+            <div className="bg-[#232A47] p-2 rounded-lg">
+              <img src="/pazar.png" alt="BAZAR Logo" className="w-10 h-10" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-[#4F7FFF] leading-tight">SIGN UP</h2>
+              <p className="text-[#A0AEC0] text-sm">Enter your email and password to register</p>
+            </div>
+          </div>
+
+          <h2 className="hidden md:block text-4xl font-bold text-[#4F7FFF] mb-2">SIGN UP</h2>
+          <p className="hidden md:block text-[#A0AEC0] mb-8 text-lg">
             Enter your email and password to register
           </p>
           <form onSubmit={handleSignUp} className="space-y-6">
@@ -233,25 +216,27 @@ export default function SignUp() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="newsletter"
-                checked={newsletter}
-                onCheckedChange={(checked) => setNewsletter(checked as boolean)}
-              />
-              <Label htmlFor="newsletter" className="text-sm text-[#A0AEC0]">
-                Subscribe to weekly newsletter
-              </Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="admin"
-                checked={isAdmin}
-                onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
-              />
-              <Label htmlFor="admin" className="text-sm text-[#A0AEC0]">
-                Register as Administrator
-              </Label>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-6">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="newsletter"
+                  checked={newsletter}
+                  onCheckedChange={(checked) => setNewsletter(checked as boolean)}
+                />
+                <Label htmlFor="newsletter" className="text-sm text-[#A0AEC0]">
+                  Subscribe to weekly newsletter
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="admin"
+                  checked={isAdmin}
+                  onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
+                />
+                <Label htmlFor="admin" className="text-sm text-[#A0AEC0]">
+                  Register as Administrator
+                </Label>
+              </div>
             </div>
             {error && (
               <div className="text-red-500 text-sm text-center">{error}</div>

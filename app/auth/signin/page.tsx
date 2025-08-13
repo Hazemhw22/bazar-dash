@@ -62,10 +62,10 @@ export default function SignIn() {
         backgroundRepeat: "no-repeat",
       }}
     >
-      <div className="flex w-full max-w-6xl h-[700px] rounded-2xl overflow-hidden shadow-2xl">
-        {/* Left: Gradient Card with Diagonal Edge */}
+      <div className="flex flex-col md:flex-row w-full max-w-6xl md:h-[700px] h-auto rounded-2xl overflow-hidden shadow-2xl m-4 md:m-0">
+        {/* Left: Gradient Card with Diagonal Edge (hidden on mobile) */}
         <div
-          className="relative w-[48%] flex flex-col items-center justify-between py-0 px-0 overflow-hidden"
+          className="relative hidden md:flex md:w-[48%] flex-col items-center justify-between py-0 px-0 overflow-hidden"
           style={{ minHeight: "100%" }}
         >
           {/* Diagonal cut gradient background, matching the attached image */}
@@ -89,9 +89,20 @@ export default function SignIn() {
           </div>
         </div>
         {/* Right: Form on dark semi-transparent background */}
-        <div className="flex-1 flex flex-col justify-center px-20 py-12 bg-[#181C2F]">
-          <h2 className="text-4xl font-bold text-[#4F7FFF] mb-2">SIGN IN</h2>
-          <p className="text-[#A0AEC0] mb-8 text-lg">
+        <div className="flex-1 flex flex-col justify-center px-6 md:px-20 py-8 md:py-12 bg-[#181C2F]">
+          {/* Mobile brand header */}
+          <div className="md:hidden mb-4 flex items-center gap-2">
+            <div className="bg-[#232A47] p-2 rounded-lg">
+              <img src="/pazar.png" alt="BAZAR Logo" className="w-10 h-10" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-[#4F7FFF] leading-tight">SIGN IN</h2>
+              <p className="text-[#A0AEC0] text-sm">Enter your email and password to login</p>
+            </div>
+          </div>
+
+          <h2 className="hidden md:block text-4xl font-bold text-[#4F7FFF] mb-2">SIGN IN</h2>
+          <p className="hidden md:block text-[#A0AEC0] mb-8 text-lg">
             Enter your email and password to login
           </p>
           <form onSubmit={handleSignIn} className="space-y-6">
@@ -124,7 +135,7 @@ export default function SignIn() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="pl-10 pr-10 h-12 bg-[#232A47] border-0 text-white"
+                    className="pl-10 pr-10 h-12 bg-[#232A47] border-0 text:white"
                     required
                   />
                   <Lock className="absolute left-3 top-3 h-5 w-5 text-[#4F7FFF]" />
@@ -142,7 +153,7 @@ export default function SignIn() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="remember"
