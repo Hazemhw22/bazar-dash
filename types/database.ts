@@ -206,6 +206,36 @@ export type Notification = {
   created_at: string;
 };
 
+// Subscriptions
+export type SubscriptionPlan = "monthly" | "semi_annual" | "annual";
+
+export type Subscription = {
+  id: string;
+  user_id: string;
+  plan: SubscriptionPlan;
+  price: number;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+// Invoices
+export type InvoiceStatus = "paid" | "unpaid";
+
+export type Invoice = {
+  id: string;
+  user_id: string;
+  subscription_id: string | null;
+  amount: number;
+  currency: string; // ILS
+  issued_at: string;
+  due_at: string | null;
+  status: InvoiceStatus;
+  created_at: string;
+};
+
 // نوع الكوبونات
 export type Coupon = {
   id: string;
@@ -286,6 +316,16 @@ export interface Database {
         >;
         Update: Partial<Omit<Coupon, "id" | "created_at" | "updated_at">>;
       };
+      subscriptions: {
+        Row: Subscription;
+        Insert: Omit<Subscription, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<Subscription, "id" | "created_at" | "updated_at">>;
+      };
+      invoices: {
+        Row: Invoice;
+        Insert: Omit<Invoice, "id" | "created_at">;
+        Update: Partial<Omit<Invoice, "id" | "created_at">>;
+      };
     };
   };
 }
@@ -313,6 +353,10 @@ export type OrderInsert = Database["public"]["Tables"]["orders"]["Insert"];
 export type OrderUpdate = Database["public"]["Tables"]["orders"]["Update"];
 export type NotificationInsert = Database["public"]["Tables"]["notifications"]["Insert"];
 export type NotificationUpdate = Database["public"]["Tables"]["notifications"]["Update"];
+export type SubscriptionInsert = Database["public"]["Tables"]["subscriptions"]["Insert"];
+export type SubscriptionUpdate = Database["public"]["Tables"]["subscriptions"]["Update"];
+export type InvoiceInsert = Database["public"]["Tables"]["invoices"]["Insert"];
+export type InvoiceUpdate = Database["public"]["Tables"]["invoices"]["Update"];
 
 // Utility types for better type safety
 export type WithId<T> = T & { id: string };

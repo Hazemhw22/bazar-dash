@@ -14,6 +14,7 @@ import {
   DollarSign,
   Users,
   User,
+  UserPlus,
   Settings,
   FileText,
   CreditCard,
@@ -36,12 +37,13 @@ const adminMainNavigation = [
 
 const adminUsersNavigation = [
   { name: "Users List", href: "/dashboard/users", icon: Users },
+  { name: "Add User", href: "/dashboard/users/add", icon: UserPlus },
 ];
 
 const adminSettingsNavigation = [
   { name: "ADMIN Settings", href: "/dashboard/settings/admin", icon: Settings },
   { name: "Admin Management", href: "/dashboard/admin-management", icon: Shield },
-  { name: "Licenses", href: "/dashboard/licenses", icon: FileText },
+  { name: "Invoices", href: "/dashboard/licenses", icon: FileText },
   { name: "Subscriptions", href: "/dashboard/subscriptions", icon: CreditCard },
 ];
 
@@ -126,7 +128,7 @@ export function DashboardSidebar() {
         supabase.from("orders").select("id", { count: "exact", head: true }),
         supabase.from("revenue").select("id", { count: "exact", head: true }),
         supabase.from("profiles").select("id", { count: "exact", head: true }),
-        supabase.from("licenses").select("id", { count: "exact", head: true }),
+        supabase.from("invoices").select("id", { count: "exact", head: true }),
         supabase
           .from("subscriptions")
           .select("id", { count: "exact", head: true }),
@@ -366,7 +368,7 @@ function SidebarContent({
                     )}
                   />
                   {item.name}
-                  {item.name === "Licenses" && licenses > 0 && (
+                  {item.name === "Invoices" && licenses > 0 && (
                     <span className="ml-auto bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full font-medium">
                       {licenses}
                     </span>

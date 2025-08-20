@@ -182,10 +182,7 @@ export default function UsersPage() {
         </div>
         <div className="flex items-center space-x-3">
           <Badge variant="secondary">{filteredUsers.length} users</Badge>
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="w-4 h-4 mr-2" />
-            Add User
-          </Button>
+          
         </div>
       </div>
 
